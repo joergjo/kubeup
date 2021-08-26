@@ -42,7 +42,7 @@ func validate(w http.ResponseWriter, r *http.Request) {
 func receive(ctx context.Context, ev cloudevents.Event) protocol.Result {
 	if ev.Type() != newKubernetesVersionAvailable {
 		log.Printf("Received unexpected CloudEvent of type %q", ev.Type())
-		return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type")
+		return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", ev.Type())
 	}
 
 	kev := newKubernetesVersionAvailableEvent{}
