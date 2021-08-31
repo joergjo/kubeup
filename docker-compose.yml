@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  kubeup:
+    image: kubeup:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    ports:
+      - "5000:5000"
+    environment:
+      - KU_SENDGRID_APIKEY=${KU_SENDGRID_APIKEY}
+      - KU_SENDGRID_FROM=${KU_SENDGRID_FROM}
+      - KU_SENDGRID_TO=${KU_SENDGRID_TO}
+      - KU_SENDGRID_SUBJECT=${KU_SENDGRID_SUBJECT}
+
