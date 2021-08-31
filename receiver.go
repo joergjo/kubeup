@@ -37,7 +37,7 @@ func (e NewKubernetesVersionAvailableEvent) Html() string {
 	b.WriteString(fmt.Sprintf("<tr><td>Latest stable version</td><td>%s</td></tr>", e.LatestStableKubernetesVersion))
 	b.WriteString(fmt.Sprintf("<tr><td>Lowest minor version</td><td>%s</td></tr>", e.LowestMinorKubernetesVersion))
 	b.WriteString(fmt.Sprintf("<tr><td>Latest preview version</td><td>%s</td></tr>", e.LatestPreviewKubernetesVersion))
-	b.WriteString("</table")
+	b.WriteString("</table>")
 	return b.String()
 }
 
