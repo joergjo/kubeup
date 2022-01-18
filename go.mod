@@ -3,8 +3,8 @@ module github.com/joergjo/go-samples/kubeup
 go 1.17
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.5.0
-	github.com/sendgrid/sendgrid-go v3.10.0+incompatible
+	github.com/cloudevents/sdk-go/v2 v2.8.0
+	github.com/sendgrid/sendgrid-go v3.10.5+incompatible
 )
 
 require (

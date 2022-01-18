@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: ${DOCKERFILE:-Dockerfile}
     ports:
-      - "5000:5000"
+      - "8000:8000"
     environment:
       - KU_SENDGRID_APIKEY=${KU_SENDGRID_APIKEY}
       - KU_SENDGRID_FROM=${KU_SENDGRID_FROM}
