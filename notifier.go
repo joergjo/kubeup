@@ -37,16 +37,12 @@ func NewSendGridNotifier(apiKey, from, to, subject string) SendGridNotifier {
 func (s SendGridNotifier) Notify(e NewKubernetesVersionAvailableEvent) error {
 	from := mail.NewEmail("Kubeup", s.FromAddr)
 	to := mail.NewEmail("Kubernetes administrator", s.ToAddr)
-	sub := s.Subject
-	txt := e.String()
-	html := e.Html()
-	msg := mail.NewSingleEmail(from, sub, to, txt, html)
+	msg := mail.NewSingleEmail(from, s.Subject, to, e.String(), e.Html())
 	res, err := s.Client.Send(msg)
 	if err != nil {
 		log.Printf("Error sending E-mail: %v", err)
 		return err
 	}
-	log.Printf("Result: %+v", res)
-	log.Printf("Notified %s", s.ToAddr)
+	log.Printf("Succesfully notified %q, SendGrid status code %d", s.ToAddr, res.StatusCode)
 	return nil
 }
