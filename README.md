@@ -14,6 +14,7 @@ Events received by `kubeup` are handled by a `Notifier`. The sample provides two
 cluster_resource_id=$(az aks show -g <resource-group> -n <cluster-name> --query id --output tsv)
 az eventgrid event-subscription create --name <subscription-name> \
     --source-resource-id $cluster_resource_id \
+    --event-delivery-schema cloudeventschemav1_0 \
     --endpoint <webhook-uri>
 ```
 
@@ -34,7 +35,8 @@ $ ./kubeup --help
 Alternatively, you can use the included `Dockerfile` to build a Docker container image. A ready to use container image is available [here](https://hub.docker.com/repository/docker/joergjo/kubeup)
 
 ## Configuration
-By default, `kubeup` uses the `LogNotifier`.   To use `SendGridNotifier`, set the following environment variables:
+By default, `kubeup` uses the `LogNotifier`. To use `SendGridNotifier`, set the following environment variables before starting `kubeup`:
+
 - `KU_SENDGRID_APIKEY`: Your SendGrid API key
 - `KU_SENDGRID_FROM`: The E-mail's from address    
 - `KU_SENDGRID_FROM`: The E-mail's to address    
