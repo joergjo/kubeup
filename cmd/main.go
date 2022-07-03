@@ -3,8 +3,13 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/joergjo/go-samples/kubeup"
 )
@@ -20,10 +25,19 @@ func main() {
 		notifier = kubeup.NewSendGridNotifier(apiKey, from, to, subject)
 	}
 
-	err := kubeup.Run(context.Background(), *path, *port, notifier)
+	h, err := kubeup.NewCloudEventHandler(context.Background(), notifier)
 	if err != nil {
-		log.Fatalf("Fatal error while running CloudEvent receiver: %v", err)
+		log.Fatalf("Fatal error creating CloudEvent receiver: %v", err)
 	}
+
+	srv := newServer(*port, *path, h)
+	srvClosed := make(chan struct{})
+	go shutdown(srv, srvClosed, 10*time.Second)
+	log.Printf("Starting server on port %d", *port)
+	err = srv.ListenAndServe()
+	log.Println("Waiting for server to shut down...")
+	<-srvClosed
+	log.Print(err)
 }
 
 func getConfigFromEnv(apiKey, from, to, sub *string) bool {
@@ -42,4 +56,27 @@ func getConfigFromEnv(apiKey, from, to, sub *string) bool {
 	}
 	*sub, ok = os.LookupEnv("KU_SENDGRID_SUBJECT")
 	return ok
+}
+
+func newServer(port int, path string, h http.Handler) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle(path, h)
+	return &http.Server{Addr: fmt.Sprintf(":%d", port),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Handler:      mux}
+}
+
+func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration) {
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-sigch
+	log.Printf("Received signal %v, shutting down", sig)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Printf("Error shutting down server: %v", err)
+	}
+	srvClosed <- struct{}{}
 }

@@ -9,7 +9,12 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
-	httpbinding "github.com/cloudevents/sdk-go/v2/protocol/http"
+	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
+)
+
+const (
+	EventTypeNewKubernetesVersionAvailable = "Microsoft.ContainerService.NewKubernetesVersionAvailable"
+	AzureEventGridOrigin                   = "eventgrid.azure.net"
 )
 
 type NewKubernetesVersionAvailableEvent struct {
@@ -29,6 +34,7 @@ func (e NewKubernetesVersionAvailableEvent) String() string {
 	return b.String()
 }
 
+// TODO: Use templates instead of hardcoded strings
 func (e NewKubernetesVersionAvailableEvent) Html() string {
 	var b strings.Builder
 	b.WriteString("<h1>New Kubernetes version available</h1>")
@@ -41,32 +47,27 @@ func (e NewKubernetesVersionAvailableEvent) Html() string {
 	return b.String()
 }
 
-const newKubernetesVersionAvailable = "Microsoft.ContainerService.NewKubernetesVersionAvailable"
-
-func Run(ctx context.Context, path string, port int, notify Notifier) error {
-	c, err := cloudevents.NewClientHTTP(
-		httpbinding.WithPath(path),
-		httpbinding.WithPort(port),
-		httpbinding.WithOptionsHandlerFunc(validate),
-	)
+func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error) {
+	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
+		[]string{http.MethodOptions},
+		cehttp.DefaultAllowedRate,
+		[]string{"eventgrid.azure.net"},
+		false))
+	if err != nil {
+		log.Printf("Error creating protocol settings: %v", err)
+		return nil, err
+	}
+	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newReceiveHandler(n))
 	if err != nil {
 		log.Printf("Error creating receiver: %v", err)
-		return err
+		return nil, err
 	}
-
-	log.Printf("Receiver using path %s, listening on port %d", path, port)
-	return c.StartReceiver(ctx, newReceiveHandler(notify))
-}
-
-func validate(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Webhook-Allowed-Origin", "eventgrid.azure.net")
-	w.WriteHeader(http.StatusOK)
-	log.Printf("Validated subscription request")
+	return h, nil
 }
 
 func newReceiveHandler(n Notifier) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
-		if e.Type() != newKubernetesVersionAvailable {
+		if e.Type() != EventTypeNewKubernetesVersionAvailable {
 			log.Printf("Received unexpected CloudEvent of type %q", e.Type())
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", e.Type())
 		}
