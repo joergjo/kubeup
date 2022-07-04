@@ -1,8 +1,7 @@
 package kubeup
 
 import (
-	"log"
-
+	"github.com/rs/zerolog/log"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -14,7 +13,7 @@ type Notifier interface {
 type LogNotifier struct{}
 
 func (l LogNotifier) Notify(e NewKubernetesVersionAvailableEvent) error {
-	log.Println(e)
+	log.Info().Msgf("%s", e)
 	return nil
 }
 
@@ -40,7 +39,7 @@ func (s SendGridNotifier) Notify(e NewKubernetesVersionAvailableEvent) error {
 	msg := mail.NewSingleEmail(from, s.Subject, to, e.String(), e.Html())
 	res, err := s.Client.Send(msg)
 	if err != nil {
-		log.Printf("Error sending E-mail: %v", err)
+		log.Error().Err(err).Msg("Error sending E-mail")
 		return err
 	}
 	log.Printf("Succesfully notified %q, SendGrid status code %d", s.ToAddr, res.StatusCode)

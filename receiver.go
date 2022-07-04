@@ -3,13 +3,13 @@ package kubeup
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -54,12 +54,12 @@ func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error)
 		[]string{"eventgrid.azure.net"},
 		false))
 	if err != nil {
-		log.Printf("Error creating protocol settings: %v", err)
+		log.Error().Err(err).Msg("Error creating protocol settings")
 		return nil, err
 	}
 	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newReceiveHandler(n))
 	if err != nil {
-		log.Printf("Error creating receiver: %v", err)
+		log.Error().Err(err).Msg("Error creating receiver")
 		return nil, err
 	}
 	return h, nil
@@ -68,19 +68,19 @@ func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error)
 func newReceiveHandler(n Notifier) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		if e.Type() != EventTypeNewKubernetesVersionAvailable {
-			log.Printf("Received unexpected CloudEvent of type %q", e.Type())
+			log.Warn().Msgf("Received unexpected CloudEvent of type %q", e.Type())
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", e.Type())
 		}
 
 		ke := NewKubernetesVersionAvailableEvent{}
 		if err := e.DataAs(&ke); err != nil {
-			log.Printf("Failed to deserialize NewKubernetesVersionAvailable data: %v", err)
+			log.Error().Err(err).Msg("Failed to deserialize NewKubernetesVersionAvailable data")
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "invalid NewKubernetesVersionAvailable data")
 		}
 
 		log.Printf("Received event with id %q", e.ID())
 		if err := n.Notify(ke); err != nil {
-			log.Printf("Failed to notify, event will be dropped. Error: %v", err)
+			log.Error().Err(err).Msg("Failed to notify, event will be dropped")
 		}
 		return cloudevents.NewHTTPResult(http.StatusOK, "")
 	}

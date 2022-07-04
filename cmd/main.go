@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,11 +11,19 @@ import (
 	"time"
 
 	"github.com/joergjo/go-samples/kubeup"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 func main() {
+	// Adjust zerlog's configuration so it mirrors the CloudEvents SDK log output
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.MessageFieldName = "msg"
+	zerolog.TimestampFieldName = "ts"
+
 	port := flag.Int("port", 8000, "HTTP listen port")
 	path := flag.String("path", "/webhook", "WebHook path")
+
 	flag.Parse()
 
 	var apiKey, from, to, subject string
@@ -27,15 +34,15 @@ func main() {
 
 	h, err := kubeup.NewCloudEventHandler(context.Background(), notifier)
 	if err != nil {
-		log.Fatalf("Fatal error creating CloudEvent receiver: %v", err)
+		log.Fatal().Err(err).Msg("Fatal error creating CloudEvent receiver")
 	}
 
 	srv := newServer(*port, *path, h)
 	srvClosed := make(chan struct{})
 	go shutdown(srv, srvClosed, 10*time.Second)
-	log.Printf("Starting server on port %d", *port)
+	log.Info().Msgf("Starting server on port %d", *port)
 	err = srv.ListenAndServe()
-	log.Println("Waiting for server to shut down...")
+	log.Info().Msgf("Waiting for server to shut down...")
 	<-srvClosed
 	log.Print(err)
 }
@@ -76,7 +83,7 @@ func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("Error shutting down server: %v", err)
+		log.Error().Err(err).Msg("Error shutting down server")
 	}
 	srvClosed <- struct{}{}
 }
