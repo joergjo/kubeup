@@ -29,7 +29,7 @@ func main() {
 	var apiKey, from, to, subject string
 	var notifier kubeup.Notifier = kubeup.LogNotifier{}
 	if getConfigFromEnv(&apiKey, &from, &to, &subject) {
-		notifier = kubeup.NewSendGridNotifier(apiKey, from, to, subject)
+		notifier = kubeup.NewSendGridNotifier(apiKey, from, to, subject, nil)
 	}
 
 	h, err := kubeup.NewCloudEventHandler(context.Background(), notifier)

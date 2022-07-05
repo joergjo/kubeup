@@ -34,19 +34,6 @@ func (e NewKubernetesVersionAvailableEvent) String() string {
 	return b.String()
 }
 
-// TODO: Use templates instead of hardcoded strings
-func (e NewKubernetesVersionAvailableEvent) Html() string {
-	var b strings.Builder
-	b.WriteString("<h1>New Kubernetes version available</h1>")
-	b.WriteString("<table>")
-	b.WriteString(fmt.Sprintf("<tr><td>Latest supported version</td><td>%s</td></tr>", e.LatestSupportedKubernetesVersion))
-	b.WriteString(fmt.Sprintf("<tr><td>Latest stable version</td><td>%s</td></tr>", e.LatestStableKubernetesVersion))
-	b.WriteString(fmt.Sprintf("<tr><td>Lowest minor version</td><td>%s</td></tr>", e.LowestMinorKubernetesVersion))
-	b.WriteString(fmt.Sprintf("<tr><td>Latest preview version</td><td>%s</td></tr>", e.LatestPreviewKubernetesVersion))
-	b.WriteString("</table>")
-	return b.String()
-}
-
 func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error) {
 	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
 		[]string{http.MethodOptions},
