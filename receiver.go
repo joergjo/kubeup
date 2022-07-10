@@ -39,7 +39,7 @@ func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error)
 		[]string{http.MethodOptions},
 		cehttp.DefaultAllowedRate,
 		[]string{"eventgrid.azure.net"},
-		false))
+		true))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating protocol settings")
 		return nil, err
