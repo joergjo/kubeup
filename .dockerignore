@@ -7,5 +7,6 @@
 **/Dockerfile*
 **/compose*
 **/testdata
+**/deploy
 LICENSE
 README.md
