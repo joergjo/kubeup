@@ -68,6 +68,9 @@ func getConfigFromEnv(apiKey, from, to, sub *string) bool {
 func newServer(port int, path string, h http.Handler) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle(path, h)
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	return &http.Server{Addr: fmt.Sprintf(":%d", port),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

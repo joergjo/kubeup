@@ -18,7 +18,7 @@ func (s stubNotifier) Notify(e kubeup.NewKubernetesVersionAvailableEvent) error 
 	return nil
 }
 
-func TestReceiverValidation(t *testing.T) {
+func TestValidation(t *testing.T) {
 	tests := []struct {
 		name   string
 		origin string
@@ -85,7 +85,7 @@ func TestReceive(t *testing.T) {
 		name        string
 		eventType   string
 		method      string
-		data        interface{}
+		data        any
 		contentType string
 		status      int
 	}{
