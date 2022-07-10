@@ -2,10 +2,10 @@ version: "3.9"
 
 services:
   kubeup:
-    image: kubeup:${TAG:-latest}
+    image: ${IMAGE:-kubeup}:${TAG:-latest}
     build:
       context: .
-      dockerfile: ${DOCKERFILE:-Dockerfile}
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -13,4 +13,3 @@ services:
       - KU_SENDGRID_FROM=${KU_SENDGRID_FROM}
       - KU_SENDGRID_TO=${KU_SENDGRID_TO}
       - KU_SENDGRID_SUBJECT=${KU_SENDGRID_SUBJECT}
-

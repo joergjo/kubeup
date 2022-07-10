@@ -26,29 +26,34 @@ fi
 
 resource_group_name=$KU_RESOURCE_GROUP_NAME
 location=${KU_LOCATION:-westeurope}
-deployment_name="kubeup-$(date +%s)"
+image=${KU_IMAGE:-joergjo/kubeup:stable}
+timestamp=$(date +%s)
+
+echo "Using resource group $resource_group_name in $location"
 
 az group create \
   --resource-group "$resource_group_name" \
-  --location "$location"
+  --location "$location" \
+  --output none
 
 fqdn=$(az deployment group create \
   --resource-group "$resource_group_name" \
-  --name "$deployment_name" \
-  --template-file main.bicep \
+  --name "kubeup-webhook-$timestamp" \
+  --template-file webhook.bicep \
   --parameters location="$location" sendGridApiKey="$KU_SENDGRID_APIKEY" \
     sendGridFrom="$KU_SENDGRID_FROM" sendGridTo="$KU_SENDGRID_TO" \
-    sendGridSubject="$KU_SENDGRID_SUBJECT" image="joergjo/kubeup:stable" \
+    sendGridSubject="$KU_SENDGRID_SUBJECT" image="$image" \
     appName="kubeup" \
   --query properties.outputs.fqdn.value \
   --output tsv)
 
 az deployment group create \
   --resource-group "$KU_AKS_RESOURCE_GROUP" \
-  --name "$deployment_name-eventgrid" \
+  --name "kubeup-eventgrid-$timestamp" \
   --template-file eventgrid.bicep \
   --parameters aksName="$KU_AKS_CLUSTER" \
     eventSubscriptionName="kubeup" \
-    webhookUrl="https://$fqdn/webhook"
+    webhookUrl="https://$fqdn/webhook" \
+  --output none
 
 echo "Kubeup has been deployed successfully. The webhook URL is https://$fqdn"

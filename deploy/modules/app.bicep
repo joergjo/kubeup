@@ -1,5 +1,5 @@
 @description('Specifies the name of the Container App.')
-param name string = 'kubeup'
+param name string
 
 @description('Specifies the location to deploy to.')
 param location string
