@@ -70,6 +70,7 @@ func newServer(port int, path string, h http.Handler) *http.Server {
 	mux.Handle(path, h)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
 	})
 	return &http.Server{Addr: fmt.Sprintf(":%d", port),
 		ReadTimeout:  5 * time.Second,
