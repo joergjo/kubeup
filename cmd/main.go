@@ -23,7 +23,6 @@ func main() {
 
 	port := flag.Int("port", 8000, "HTTP listen port")
 	path := flag.String("path", "/webhook", "WebHook path")
-
 	flag.Parse()
 
 	var apiKey, from, to, subject string
@@ -44,7 +43,10 @@ func main() {
 	err = srv.ListenAndServe()
 	log.Info().Msgf("Waiting for server to shut down...")
 	<-srvClosed
-	log.Print(err)
+	if err != nil {
+		log.Error().Err(err)
+	}
+	log.Info().Msg("Server has shut down")
 }
 
 func getConfigFromEnv(apiKey, from, to, sub *string) bool {
@@ -83,7 +85,7 @@ func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigch
-	log.Printf("Received signal %v, shutting down", sig)
+	log.Warn().Msgf("Received signal %v, shutting down", sig)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {

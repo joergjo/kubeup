@@ -64,11 +64,11 @@ $ az aks create --resource-group <aks-cluster-resource-group> \
 
 ## Building
 
-Building `kubeup` requires [Go 1.18 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD.
+Building `kubeup` requires [Go 1.18 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD. On Windows, substitute `/` with `\`.
 
 ```bash
 $ cd kubeup
-$ go build -o ./kubeup cmd/main.go
+$ go build -o ./kubeup ./cmd/main.go
 $ ./kubeup --help
 ```
 
