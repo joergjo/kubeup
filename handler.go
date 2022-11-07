@@ -9,6 +9,7 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
+	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
 )
 
@@ -34,7 +35,7 @@ func (e NewKubernetesVersionAvailableEvent) String() string {
 	return b.String()
 }
 
-func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error) {
+func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, error) {
 	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
 		[]string{http.MethodOptions},
 		cehttp.DefaultAllowedRate,
@@ -44,31 +45,40 @@ func NewCloudEventHandler(ctx context.Context, n Notifier) (http.Handler, error)
 		log.Error().Err(err).Msg("Error creating protocol settings")
 		return nil, err
 	}
-	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newReceiveHandler(n))
+	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newEventReceiver(pub))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating receiver")
 		return nil, err
 	}
+
 	return h, nil
 }
 
-func newReceiveHandler(n Notifier) func(context.Context, cloudevents.Event) protocol.Result {
+func newEventReceiver(pub *Publisher) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		if e.Type() != EventTypeNewKubernetesVersionAvailable {
 			log.Warn().Msgf("Received unexpected CloudEvent of type %q", e.Type())
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", e.Type())
 		}
 
-		ke := NewKubernetesVersionAvailableEvent{}
+		var ke NewKubernetesVersionAvailableEvent
 		if err := e.DataAs(&ke); err != nil {
 			log.Error().Err(err).Msg("Failed to deserialize NewKubernetesVersionAvailable data")
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "invalid NewKubernetesVersionAvailable data")
 		}
 
-		log.Printf("Received event with id %q", e.ID())
-		if err := n.Notify(ke); err != nil {
-			log.Error().Err(err).Msg("Failed to notify, event will be dropped")
+		log.Info().Msgf("Received event with id %q", e.ID())
+		if err := pub.Publish(ke); err != nil {
+			if merr, ok := err.(*multierror.Error); ok {
+				for _, innerErr := range merr.Errors {
+					log.Error().Err(innerErr).Msg("Error publishing event")
+
+				}
+			} else {
+				log.Error().Err(err).Msg("Error publishing event")
+			}
 		}
+
 		return cloudevents.NewHTTPResult(http.StatusOK, "")
 	}
 }

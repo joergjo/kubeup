@@ -12,12 +12,6 @@ import (
 	"github.com/joergjo/go-samples/kubeup"
 )
 
-type stubNotifier struct{}
-
-func (s stubNotifier) Notify(e kubeup.NewKubernetesVersionAvailableEvent) error {
-	return nil
-}
-
 func TestValidation(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -42,7 +36,8 @@ func TestValidation(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h, err := kubeup.NewCloudEventHandler(context.Background(), stubNotifier{})
+			pub, _ := kubeup.NewPublisher()
+			h, err := kubeup.NewCloudEventHandler(context.Background(), pub)
 			if err != nil {
 				t.Fatalf("Error creating handler: %v", err)
 			}
@@ -61,13 +56,13 @@ func TestValidation(t *testing.T) {
 				req.Header.Set("WebHook-Request-Origin", tc.origin)
 			}
 			c := ts.Client()
-			resp, err := c.Do(req)
+			res, err := c.Do(req)
 			if err != nil {
 				t.Fatalf("Error sending request: %v", err)
 			}
 
-			if resp.StatusCode != tc.status {
-				t.Errorf("Expected status code %d, got %d", tc.status, resp.StatusCode)
+			if res.StatusCode != tc.status {
+				t.Errorf("Expected status code %d, got %d", tc.status, res.StatusCode)
 			}
 		})
 	}
@@ -124,15 +119,11 @@ func TestReceive(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			h, err := kubeup.NewCloudEventHandler(context.Background(), stubNotifier{})
+			pub, _ := kubeup.NewPublisher()
+			h, err := kubeup.NewCloudEventHandler(context.Background(), pub)
 			if err != nil {
 				t.Fatalf("Error creating handler: %v", err)
 			}
-
-			mux := http.NewServeMux()
-			mux.Handle("/webhook", h)
-			ts := httptest.NewServer(mux)
-			defer ts.Close()
 
 			event := cloudevents.NewEvent()
 			event.SetID("1234567890abcdef1234567890abcdef12345678")
@@ -145,20 +136,13 @@ func TestReceive(t *testing.T) {
 				t.Fatalf("Error marshalling event: %v", err)
 			}
 
-			req, err := http.NewRequest(tc.method, ts.URL+"/webhook", bytes.NewBuffer(body))
-			if err != nil {
-				t.Fatalf("Error creating request: %v", err)
-			}
+			req := httptest.NewRequest(tc.method, "/webhook", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", tc.contentType)
 
-			c := ts.Client()
-			resp, err := c.Do(req)
-			if err != nil {
-				t.Fatalf("Error sending request: %v", err)
-			}
-
-			if resp.StatusCode != tc.status {
-				t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
+			res := httptest.NewRecorder()
+			h.ServeHTTP(res, req)
+			if res.Result().StatusCode != tc.status {
+				t.Errorf("Expected status code %d, got %d", http.StatusOK, res.Result().StatusCode)
 			}
 		})
 	}

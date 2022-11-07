@@ -25,19 +25,19 @@ param sendGridSubject string
 @description('Specifies the environment variables used by the application.')
 param envVars array = [
   {
-    name: 'KU_SENGRID_APIKEY'
+    name: 'KU_SENDGRID_APIKEY'
     value: sendGridApiKey
   }
   {
-    name: 'KU_SENGRID_FROM'
+    name: 'KU_SENDGRID_FROM'
     value: sendGridFrom
   }
   {
-    name: 'KU_SENGRID_TO'
+    name: 'KU_SENDGRID_TO'
     value: sendGridTo
   }
   {
-    name: 'KU_SENGRID_SUBJECT'
+    name: 'KU_SENDGRID_SUBJECT'
     value: sendGridSubject
   }
 ]

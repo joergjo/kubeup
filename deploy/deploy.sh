@@ -8,19 +8,19 @@ if [ -z "$KU_SENDGRID_APIKEY" ]; then
     exit 1
 fi
 if [ -z "$KU_SENDGRID_FROM" ]; then
-    echo "KU_SENDGRID_FROM is not set. Please set it to sender E-mail adress."
+    echo "KU_SENDGRID_FROM is not set. Please set it to the E-mail address to send notifications from."
     exit 1
 fi
 if [ -z "$KU_SENDGRID_TO" ]; then
-    echo "KU_SENDGRID_TO is not set. Please set it to receiver E-mail adress."
+    echo "KU_SENDGRID_TO is not set. Please set it to the E-mail address to send notifications to."
     exit 1
 fi
 if [ -z "$KU_AKS_CLUSTER" ]; then
-    echo "KU_AKS_CLUSTER is not set. Please set it to receiver E-mail adress."
+    echo "KU_AKS_CLUSTER is not set. Please set it to your AKS cluster's resource ID."
     exit 1
 fi
 if [ -z "$KU_AKS_RESOURCE_GROUP" ]; then
-    echo "KU_AKS_RESOURCE_GROUP is not set. Please set it to receiver E-mail adress."
+    echo "KU_AKS_RESOURCE_GROUP is not set. Please set it to your AKS cluster's resource group."
     exit 1
 fi
 
