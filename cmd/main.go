@@ -59,14 +59,14 @@ func main() {
 		log.Fatal().Err(err).Msg("Fatal error creating CloudEvent receiver")
 	}
 
-	srv := newServer(*port, *path, h)
-	srvClosed := make(chan struct{})
-	go shutdown(srv, srvClosed, 10*time.Second)
+	s := newServer(*port, *path, h)
+	done := make(chan struct{})
+	go shutdown(s, done, 10*time.Second)
 
 	log.Info().Msgf("Starting server on port %d", *port)
-	err = srv.ListenAndServe()
+	err = s.ListenAndServe()
 	log.Info().Msgf("Waiting for server to shut down")
-	<-srvClosed
+	<-done
 	log.Info().Err(err).Msg("Server has shut down")
 }
 
@@ -90,11 +90,12 @@ func newServer(port int, path string, h http.Handler) *http.Server {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
-	return &http.Server{Addr: fmt.Sprintf(":%d", port),
+	s := http.Server{Addr: fmt.Sprintf(":%d", port),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 		Handler:      mux}
+	return &s
 }
 
 func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration) {
@@ -107,5 +108,5 @@ func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Error shutting down server")
 	}
-	srvClosed <- struct{}{}
+	close(srvClosed)
 }
