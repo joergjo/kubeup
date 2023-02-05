@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,7 +63,7 @@ func TestValidation(t *testing.T) {
 			}
 
 			if res.StatusCode != tc.status {
-				t.Errorf("Expected status code %d, got %d", tc.status, res.StatusCode)
+				t.Errorf("Want status code %d, got %d", tc.status, res.StatusCode)
 			}
 		})
 	}
@@ -142,8 +143,49 @@ func TestReceive(t *testing.T) {
 			res := httptest.NewRecorder()
 			h.ServeHTTP(res, req)
 			if res.Result().StatusCode != tc.status {
-				t.Errorf("Expected status code %d, got %d", http.StatusOK, res.Result().StatusCode)
+				t.Errorf("Want status code %d, got %d", tc.status, res.Result().StatusCode)
 			}
 		})
 	}
+}
+
+func TestPublisherError(t *testing.T) {
+	testData := kubeup.NewKubernetesVersionAvailableEvent{
+		LatestSupportedKubernetesVersion: "1.24.0",
+		LatestStableKubernetesVersion:    "1.23.0",
+		LowestMinorKubernetesVersion:     "1.22.0",
+		LatestPreviewKubernetesVersion:   "1.25.0",
+	}
+
+	opts := kubeup.WithPublisherFunc(func(event kubeup.NewKubernetesVersionAvailableEvent) error {
+		err1 := errors.New("first error publishing event")
+		err2 := errors.New("second error publishing event")
+		return errors.Join(err1, err2)
+	})
+	pub, _ := kubeup.NewPublisher(opts)
+	h, err := kubeup.NewCloudEventHandler(context.Background(), pub)
+	if err != nil {
+		t.Fatalf("Error creating handler: %v", err)
+	}
+	event := cloudevents.NewEvent()
+	event.SetID("1234567890abcdef1234567890abcdef12345678")
+	event.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
+	event.SetType(kubeup.EventTypeNewKubernetesVersionAvailable)
+	event.SetData(cloudevents.ApplicationCloudEventsJSON, testData)
+
+	body, err := json.Marshal(event)
+	if err != nil {
+		t.Fatalf("Error marshalling event: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/webhook", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/cloudevents+json")
+
+	res := httptest.NewRecorder()
+	h.ServeHTTP(res, req)
+	want := http.StatusOK
+	if res.Result().StatusCode != want {
+		t.Errorf("Want status code %d, got %d", want, res.Result().StatusCode)
+	}
+
 }

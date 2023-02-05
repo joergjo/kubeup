@@ -9,7 +9,6 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
-	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
 )
 
@@ -69,14 +68,7 @@ func newEventReceiver(pub *Publisher) func(context.Context, cloudevents.Event) p
 
 		log.Info().Msgf("Received event with id %q", e.ID())
 		if err := pub.Publish(ke); err != nil {
-			if merr, ok := err.(*multierror.Error); ok {
-				for _, innerErr := range merr.Errors {
-					log.Error().Err(innerErr).Msg("Error publishing event")
-
-				}
-			} else {
-				log.Error().Err(err).Msg("Error publishing event")
-			}
+			log.Error().Err(err).Msg("Error publishing event")
 		}
 
 		return cloudevents.NewHTTPResult(http.StatusOK, "")

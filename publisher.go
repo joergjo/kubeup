@@ -2,9 +2,9 @@ package kubeup
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/rs/zerolog/log"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -29,7 +29,7 @@ func (p *Publisher) Publish(e NewKubernetesVersionAvailableEvent) error {
 	var result error
 	for _, pub := range p.publishers {
 		if err := pub(e); err != nil {
-			multierror.Append(result, err)
+			result = errors.Join(err)
 		}
 	}
 	return result
