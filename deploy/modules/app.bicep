@@ -10,8 +10,18 @@ param environmentId string
 @description('Specifies the container image.')
 param image string
 
-@description('Specifies the environment variables used by the application.')
-param envVars array
+@description('Specifies the SendGrid API key.')
+@secure()
+param sendGridApiKey string
+
+@description('Specifies the notification\'s email From address.')
+param sendGridFrom string
+
+@description('Specifies the notification\'s email To address.')
+param sendGridTo string
+
+@description('Specifies the notification\'s email subject´.')
+param sendGridSubject string
 
 var port = 8000
 
@@ -21,6 +31,12 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
   properties: {
     managedEnvironmentId: environmentId
     configuration: {
+      secrets: [
+        {
+          name: 'sendgrid-api-key'
+          value: sendGridApiKey
+        }
+      ]
       ingress: {
         external: true
         targetPort: port
@@ -34,7 +50,24 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
         {
           image: image
           name: name
-          env: envVars
+          env: [
+            {
+              name: 'KU_SENDGRID_API_KEY'
+              secretRef: 'sendgrid-api-key'
+            }
+            {
+              name: 'KU_SENDGRID_FROM'
+              value: sendGridFrom
+            }
+            {
+              name: 'KU_SENDGRID_TO'
+              value: sendGridTo
+            }
+            {
+              name: 'KU_SENDGRID_SUBJECT'
+              value: sendGridSubject
+            }
+          ]
           resources: {
             cpu: json('0.5')
             memory: '1Gi'

@@ -11,7 +11,7 @@ Events received by `kubeup` are handled by a `Notifier`. The sample provides two
 
 Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or you can use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
 
-## Prequisites
+## Prerequisites
 
 You'll need an Azure subscription and a very small set of tools and skills to get started:
 
@@ -64,7 +64,7 @@ $ az aks create --resource-group <aks-cluster-resource-group> \
 
 ## Building
 
-Building `kubeup` requires [Go 1.18 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD. On Windows, substitute `/` with `\`.
+Building `kubeup` requires [Go 1.20 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD. On Windows, substitute `/` with `\`.
 
 ```bash
 $ cd kubeup

@@ -22,26 +22,6 @@ param sendGridTo string
 @description('Specifies the Twilio SendGrid E-mail subject.')
 param sendGridSubject string
 
-@description('Specifies the environment variables used by the application.')
-param envVars array = [
-  {
-    name: 'KU_SENDGRID_APIKEY'
-    value: sendGridApiKey
-  }
-  {
-    name: 'KU_SENDGRID_FROM'
-    value: sendGridFrom
-  }
-  {
-    name: 'KU_SENDGRID_TO'
-    value: sendGridTo
-  }
-  {
-    name: 'KU_SENDGRID_SUBJECT'
-    value: sendGridSubject
-  }
-]
-
 module network 'modules/network.bicep' = {
   name: 'network'
   params: {
@@ -66,7 +46,10 @@ module app 'modules/app.bicep' = {
     location: location
     environmentId: environment.outputs.environmentId
     image: image
-    envVars: envVars
+    sendGridApiKey: sendGridApiKey
+    sendGridFrom: sendGridFrom
+    sendGridTo: sendGridTo
+    sendGridSubject: sendGridSubject
   }
 }
 

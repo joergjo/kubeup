@@ -7,11 +7,11 @@ param aksName string
 @description('Specifies the webhook URL to deliver events to.')
 param webhookUrl string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2022-04-01' existing = {
+resource aks 'Microsoft.ContainerService/managedClusters@2022-11-01' existing = {
   name: aksName
 }
 
-resource eventSubscription 'Microsoft.EventGrid/eventSubscriptions@2021-12-01' = {
+resource eventSubscription 'Microsoft.EventGrid/eventSubscriptions@2022-06-15' = {
   name: eventSubscriptionName
   scope: aks
   properties: {
