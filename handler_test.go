@@ -70,7 +70,7 @@ func TestValidation(t *testing.T) {
 }
 
 func TestReceive(t *testing.T) {
-	testData := kubeup.NewKubernetesVersionAvailableEvent{
+	ke := kubeup.NewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
@@ -90,14 +90,14 @@ func TestReceive(t *testing.T) {
 			eventType:   kubeup.EventTypeNewKubernetesVersionAvailable,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data:        testData,
+			data:        ke,
 			status:      http.StatusOK,
 		},
 		{
 			name:        "invalid_event_type",
 			eventType:   "invalid_event_type",
 			contentType: cloudevents.ApplicationCloudEventsJSON,
-			data:        testData,
+			data:        ke,
 			method:      http.MethodPost,
 			status:      http.StatusBadRequest,
 		},
@@ -126,13 +126,13 @@ func TestReceive(t *testing.T) {
 				t.Fatalf("Error creating handler: %v", err)
 			}
 
-			event := cloudevents.NewEvent()
-			event.SetID("1234567890abcdef1234567890abcdef12345678")
-			event.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
-			event.SetType(tc.eventType)
-			event.SetData(cloudevents.ApplicationCloudEventsJSON, testData)
+			e := cloudevents.NewEvent()
+			e.SetID("1234567890abcdef1234567890abcdef12345678")
+			e.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
+			e.SetType(tc.eventType)
+			e.SetData(cloudevents.ApplicationCloudEventsJSON, ke)
 
-			body, err := json.Marshal(event)
+			body, err := json.Marshal(e)
 			if err != nil {
 				t.Fatalf("Error marshalling event: %v", err)
 			}
@@ -150,14 +150,14 @@ func TestReceive(t *testing.T) {
 }
 
 func TestPublisherError(t *testing.T) {
-	testData := kubeup.NewKubernetesVersionAvailableEvent{
+	ke := kubeup.NewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
 
-	opts := kubeup.WithPublisherFunc(func(event kubeup.NewKubernetesVersionAvailableEvent) error {
+	opts := kubeup.WithPublisherFunc(func(event kubeup.VersionUpdateEvent) error {
 		err1 := errors.New("first error publishing event")
 		err2 := errors.New("second error publishing event")
 		return errors.Join(err1, err2)
@@ -167,13 +167,13 @@ func TestPublisherError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating handler: %v", err)
 	}
-	event := cloudevents.NewEvent()
-	event.SetID("1234567890abcdef1234567890abcdef12345678")
-	event.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
-	event.SetType(kubeup.EventTypeNewKubernetesVersionAvailable)
-	event.SetData(cloudevents.ApplicationCloudEventsJSON, testData)
+	e := cloudevents.NewEvent()
+	e.SetID("1234567890abcdef1234567890abcdef12345678")
+	e.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
+	e.SetType(kubeup.EventTypeNewKubernetesVersionAvailable)
+	e.SetData(cloudevents.ApplicationCloudEventsJSON, ke)
 
-	body, err := json.Marshal(event)
+	body, err := json.Marshal(e)
 	if err != nil {
 		t.Fatalf("Error marshalling event: %v", err)
 	}

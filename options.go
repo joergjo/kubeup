@@ -46,7 +46,7 @@ func WithSendgrid(apiKey, from, to, sub string, tmpl *template.Template) Options
 			return errors.New("subject required")
 		}
 		if tmpl == nil {
-			tmpl = template.Must(template.New("email").Parse(defaultMailTemplate))
+			tmpl = template.Must(template.New("email").Parse(TemplateEmail))
 		}
 		s := sendgridOptions{
 			apiKey: apiKey,
@@ -61,7 +61,7 @@ func WithSendgrid(apiKey, from, to, sub string, tmpl *template.Template) Options
 	}
 }
 
-func WithPublisherFunc(fn func(e NewKubernetesVersionAvailableEvent) error) Options {
+func WithPublisherFunc(fn func(e VersionUpdateEvent) error) Options {
 	return func(options *options) error {
 		if fn == nil {
 			return errors.New("publisher func must not be nil")

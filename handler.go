@@ -2,9 +2,7 @@ package kubeup
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
@@ -17,28 +15,11 @@ const (
 	AzureEventGridOrigin                   = "eventgrid.azure.net"
 )
 
-type NewKubernetesVersionAvailableEvent struct {
-	LatestSupportedKubernetesVersion string `json:"latestSupportedKubernetesVersion"`
-	LatestStableKubernetesVersion    string `json:"latestStableKubernetesVersion"`
-	LowestMinorKubernetesVersion     string `json:"lowestMinorKubernetesVersion"`
-	LatestPreviewKubernetesVersion   string `json:"latestPreviewKubernetesVersion"`
-}
-
-func (e NewKubernetesVersionAvailableEvent) String() string {
-	var b strings.Builder
-	b.WriteString("New Kubernetes version available:\n")
-	b.WriteString(fmt.Sprintf("Latest supported version: %s\n", e.LatestSupportedKubernetesVersion))
-	b.WriteString(fmt.Sprintf("Latest stable version: %s\n", e.LatestStableKubernetesVersion))
-	b.WriteString(fmt.Sprintf("Lowest minor version: %s\n", e.LowestMinorKubernetesVersion))
-	b.WriteString(fmt.Sprintf("Latest preview version: %s\n", e.LatestPreviewKubernetesVersion))
-	return b.String()
-}
-
 func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, error) {
 	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
 		[]string{http.MethodOptions},
 		cehttp.DefaultAllowedRate,
-		[]string{"eventgrid.azure.net"},
+		[]string{AzureEventGridOrigin},
 		true))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating protocol settings")
@@ -67,7 +48,11 @@ func newEventReceiver(pub *Publisher) func(context.Context, cloudevents.Event) p
 		}
 
 		log.Info().Msgf("Received event with id %q", e.ID())
-		if err := pub.Publish(ke); err != nil {
+		vue := VersionUpdateEvent{
+			ResourceID:                         e.Source(),
+			NewKubernetesVersionAvailableEvent: ke,
+		}
+		if err := pub.Publish(vue); err != nil {
 			log.Error().Err(err).Msg("Error publishing event")
 		}
 

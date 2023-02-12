@@ -1,6 +1,6 @@
 #!/bin/bash
-if [ -z "$KU_RESOURCE_GROUP_NAME" ]; then
-    echo "KUBEUP_RESOURCE_GROUP_NAME is not set. Please set it to the name of the resource group to deploy to."
+if [ -z "$KU_RESOURCE_GROUP" ]; then
+    echo "KU_RESOURCE_GROUP is not set. Please set it to the name of the resource group to deploy to."
     exit 1
 fi
 if [ -z "$KU_SENDGRID_APIKEY" ]; then
@@ -24,20 +24,20 @@ if [ -z "$KU_AKS_RESOURCE_GROUP" ]; then
     exit 1
 fi
 
-resource_group_name=$KU_RESOURCE_GROUP_NAME
+resource_group=$KU_RESOURCE_GROUP
 location=${KU_LOCATION:-westeurope}
 image=${KU_IMAGE:-joergjo/kubeup:stable}
 timestamp=$(date +%s)
 
-echo "Using resource group $resource_group_name in $location"
+echo "Using resource group $resource_group in $location"
 
 az group create \
-  --resource-group "$resource_group_name" \
+  --resource-group "$resource_group" \
   --location "$location" \
   --output none
 
 fqdn=$(az deployment group create \
-  --resource-group "$resource_group_name" \
+  --resource-group "$resource_group" \
   --name "kubeup-webhook-$timestamp" \
   --template-file webhook.bicep \
   --parameters location="$location" sendGridApiKey="$KU_SENDGRID_APIKEY" \

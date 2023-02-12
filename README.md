@@ -38,7 +38,7 @@ environment variables with no default value are required.
 
 | Environment variable     | Purpose                              | Default value           |
 | ------------------------ | ------------------------------------ | ----------------------- |
-| `KU_RESOURCE_GROUP_NAME` | Resource group to deploy to          | none                    |
+| `KU_RESOURCE_GROUP`      | Resource group to deploy to          | none                    |
 | `KU_SENDGRID_APIKEY`     | Twilio SendGrid API key              | none                    |
 | `KU_SENDGRID_FROM`       | Notification receiver E-mail address | none                    |
 | `KU_SENDGRID_TO`         | Notification sender E-mail address   | none                    |

@@ -10,8 +10,9 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-const defaultMailTemplate = `
+const TemplateEmail = `
 <h1>New Kubernetes version available</h1>
+<h2>Resource ID: {{ .ResourceID }}</h2>
 <table>
 <tr><td>Latest supported version</td><td>{{ .LatestSupportedKubernetesVersion }}</td></tr>
 <tr><td>Latest stable version</td><td>{{ .LatestStableKubernetesVersion }}</td></tr>
@@ -19,13 +20,13 @@ const defaultMailTemplate = `
 <tr><td>Latest preview version</td><td>{{ .LatestPreviewKubernetesVersion }}</td></tr>
 </table>`
 
-type publisher func(e NewKubernetesVersionAvailableEvent) error
+type publisher func(e VersionUpdateEvent) error
 
 type Publisher struct {
 	publishers []publisher
 }
 
-func (p *Publisher) Publish(e NewKubernetesVersionAvailableEvent) error {
+func (p *Publisher) Publish(e VersionUpdateEvent) error {
 	var result error
 	for _, pub := range p.publishers {
 		if err := pub(e); err != nil {
@@ -62,7 +63,7 @@ func NewPublisher(opts ...Options) (*Publisher, error) {
 
 func newSendGridHandler(s sendgridOptions) publisher {
 	client := sendgrid.NewSendClient(s.apiKey)
-	return func(e NewKubernetesVersionAvailableEvent) error {
+	return func(e VersionUpdateEvent) error {
 		b := make([]byte, 0, 512)
 		buf := bytes.NewBuffer(b)
 		if err := s.tmpl.Execute(buf, e); err != nil {
@@ -81,14 +82,14 @@ func newSendGridHandler(s sendgridOptions) publisher {
 			return err
 		}
 
-		log.Debug().Msgf("SendGrid has notified %q", s.to)
+		log.Debug().Str("Email", to.Address).Msgf("SendGrid notification successfully sent")
 		return nil
 	}
 }
 
 func newLogHandler() publisher {
-	return func(e NewKubernetesVersionAvailableEvent) error {
-		log.Info().Msgf("%s", e)
+	return func(e VersionUpdateEvent) error {
+		log.Info().Str("ResourceID", e.ResourceID).Msgf("%s", e.NewKubernetesVersionAvailableEvent)
 		return nil
 	}
 }
