@@ -26,7 +26,7 @@ fi
 
 resource_group=$KU_RESOURCE_GROUP
 location=${KU_LOCATION:-westeurope}
-image=${KU_IMAGE:-joergjo/kubeup:stable}
+image=${KU_IMAGE:-joergjo/kubeup:latest}
 timestamp=$(date +%s)
 
 echo "Using resource group $resource_group in $location"
