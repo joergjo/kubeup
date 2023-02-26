@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ -z "$KU_RESOURCE_GROUP" ]; then
+if [[ -z "$KU_RESOURCE_GROUP" ]]; then
     echo "KU_RESOURCE_GROUP is not set. Please set it to the name of the resource group to deploy to."
     exit 1
 fi
@@ -30,14 +30,14 @@ fqdn=$(az deployment group create \
   --query properties.outputs.fqdn.value \
   --output tsv)
 
-if [ -z "$fqdn" ]; then
-    echo "Failed to create webhook."
+if [[ -z "$fqdn" ]]; then
+    echo "Failed to deploy kubeup webhook."
     exit 1
 fi
 
 echo "Kubeup has been deployed successfully. The webhook URL is https://$fqdn"
 
-if [ -z "$KU_AKS_CLUSTER" || -z "$KU_AKS_RESOURCE_GROUP" ]; then
+if [[ -z "$KU_AKS_CLUSTER" || -z "$KU_AKS_RESOURCE_GROUP" ]]; then
     echo "KU_AKS_CLUSTER or KU_AKS_RESOURCE_GROUP not set. Skipping Event Grid topic creation."
     exit 0
 fi

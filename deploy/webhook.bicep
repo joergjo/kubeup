@@ -23,27 +23,27 @@ param sendGridTo string
 param sendGridSubject string
 
 @description('Specifies the SMTP hostname.')
-param smptHost string
+param smtpHost string
 
 @description('Specifies the SMTP port.')
-param smptPort int = 587
+param smtpPort int = 587
 
 @description('Specifies the SMTP username.')
 @secure()
-param smptUsername string
+param smtpUsername string
 
 @description('Specifies the SMTP password.')
 @secure()
-param smptPassword string
+param smtpPassword string
 
 @description('Specifies the SMTP from address.')
-param smptFrom string
+param smtpFrom string
 
 @description('Specifies the SMTP to address.')
-param smptTo string
+param smtpTo string
 
 @description('Specifies the SMTP subject.')
-param smptSubject string
+param smtpSubject string
 
 module network 'modules/network.bicep' = {
   name: 'network'
@@ -73,13 +73,13 @@ module app 'modules/app.bicep' = {
     sendGridFrom: sendGridFrom
     sendGridTo: sendGridTo
     sendGridSubject: sendGridSubject
-    smptHost: smptHost
-    smptPort: smptPort
-    smptUsername: smptUsername
-    smptPassword: smptPassword
-    smptFrom: smptFrom
-    smptTo: smptTo
-    smptSubject: smptSubject
+    smtpHost: smtpHost
+    smtpPort: smtpPort
+    smtpUsername: smtpUsername
+    smtpPassword: smtpPassword
+    smtpFrom: smtpFrom
+    smtpTo: smtpTo
+    smtpSubject: smtpSubject
   }
 }
 

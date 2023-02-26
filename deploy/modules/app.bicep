@@ -24,29 +24,97 @@ param sendGridTo string
 param sendGridSubject string
 
 @description('Specifies the SMTP hostname.')
-param smptHost string
+param smtpHost string
 
 @description('Specifies the SMTP port.')
-param smptPort int
+param smtpPort int
 
 @description('Specifies the SMTP username.')
 @secure()
-param smptUsername string
+param smtpUsername string
 
 @description('Specifies the SMTP password.')
 @secure()
-param smptPassword string
+param smtpPassword string
 
 @description('Specifies the SMTP from address.')
-param smptFrom string
+param smtpFrom string
 
 @description('Specifies the SMTP to address.')
-param smptTo string
+param smtpTo string
 
 @description('Specifies the SMTP subject.')
-param smptSubject string
+param smtpSubject string
 
 var port = 8000
+
+var allSecrets = [
+  {
+    name: 'sendgrid-api-key'
+    value: sendGridApiKey
+  }
+  {
+    name: 'smtp-username'
+    value: smtpUsername
+  }
+  {
+    name: 'smtp-password'
+    value: smtpPassword
+  }
+]
+
+var secrets = filter(allSecrets, s => !empty(s.value))
+
+var allEnvVars = [
+  {
+    name: 'KU_SENDGRID_API_KEY'
+    secretRef: 'sendgrid-api-key'
+  }
+  {
+    name: 'KU_SENDGRID_FROM'
+    value: sendGridFrom
+  }
+  {
+    name: 'KU_SENDGRID_TO'
+    value: sendGridTo
+  }
+  {
+    name: 'KU_SENDGRID_SUBJECT'
+    value: sendGridSubject
+  }
+  {
+    name: 'KU_SMTP_HOST'
+    value: smtpHost
+  }
+  {
+    name: 'KU_SMTP_PORT'
+    value: string(smtpPort)
+  }
+  {
+    name: 'KU_SMTP_USERNAME'
+    secretRef: 'smtp-username'
+  }
+  {
+    name: 'KU_SMTP_PASSWORD'
+    secretRef: 'smtp-password'
+  }
+  {
+    name: 'KU_SMTP_FROM'
+    value: smtpFrom
+  }
+  {
+    name: 'KU_SMTP_TO'
+    value: smtpTo
+  }
+  {
+    name: 'KU_SMTP_SUBJECT'
+    value: smtpSubject
+  }
+]
+
+var secretNames = map(secrets, s => s.name)
+
+var envVars = filter(allEnvVars, e => (contains(e, 'secretRef') && contains(secretNames, e.secretRef)) || contains(e, 'value'))
 
 resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
   name: name
@@ -54,19 +122,7 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
   properties: {
     managedEnvironmentId: environmentId
     configuration: {
-      secrets: [
-        {
-          name: 'sendgrid-api-key'
-          value: sendGridApiKey
-        }
-        {
-          name: 'smtp-username'
-          value: smptUsername
-        }
-        {
-          name: 'smtp-password'
-          value: smptPassword}
-      ]
+      secrets: secrets
       ingress: {
         external: true
         targetPort: port
@@ -80,52 +136,7 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
         {
           image: image
           name: name
-          env: [
-            {
-              name: 'KU_SENDGRID_API_KEY'
-              secretRef: 'sendgrid-api-key'
-            }
-            {
-              name: 'KU_SENDGRID_FROM'
-              value: sendGridFrom
-            }
-            {
-              name: 'KU_SENDGRID_TO'
-              value: sendGridTo
-            }
-            {
-              name: 'KU_SENDGRID_SUBJECT'
-              value: sendGridSubject
-            }
-            {
-              name: 'KU_SMTP_HOST'
-              value: smptHost
-            }
-            {
-              name: 'KU_SMTP_PORT'
-              value: string(smptPort)
-            }
-            {
-              name: 'KU_SMTP_USERNAME'
-              secretRef: 'smtp-username'
-            }
-            {
-              name: 'KU_SMTP_PASSWORD'
-              secretRef: 'smtp-password' 
-            }
-            {
-              name: 'KU_SMTP_FROM'
-              value: smptFrom
-            }
-            {
-              name: 'KU_SMTP_TO'
-              value: smptTo
-            }
-            {
-              name: 'KU_SMTP_SUBJECT'
-              value: smptSubject
-            }
-          ]
+          env: envVars
           resources: {
             cpu: json('0.5')
             memory: '1Gi'
