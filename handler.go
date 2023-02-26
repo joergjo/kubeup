@@ -48,7 +48,7 @@ func newEventReceiver(pub *Publisher) func(context.Context, cloudevents.Event) p
 		}
 
 		log.Info().Msgf("Received event with id %q", e.ID())
-		vue := VersionUpdateEvent{
+		vue := ResourceUpdateEvent{
 			ResourceID:                         e.Source(),
 			NewKubernetesVersionAvailableEvent: ke,
 		}

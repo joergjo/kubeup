@@ -24,14 +24,14 @@ func (e NewKubernetesVersionAvailableEvent) String() string {
 	return b.String()
 }
 
-// VersionUpdateEvent is the event that is sent to kubeup publishers. It embeds the
+// ResourceUpdateEvent is the event that is sent to kubeup publishers. It embeds the
 // NewKubernetesVersionAvailableEvent and adds the resource ID of the cluster.
-type VersionUpdateEvent struct {
+type ResourceUpdateEvent struct {
 	ResourceID string
 	NewKubernetesVersionAvailableEvent
 }
 
-func (e VersionUpdateEvent) String() string {
+func (e ResourceUpdateEvent) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf("Resource ID: %s\n", e.ResourceID))
 	b.WriteString(e.NewKubernetesVersionAvailableEvent.String())

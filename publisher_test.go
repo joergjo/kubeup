@@ -15,7 +15,7 @@ func TestMailTemplate(t *testing.T) {
 		LowestMinorKubernetesVersion:     "1.22.0",
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
-	vue := kubeup.VersionUpdateEvent{
+	vue := kubeup.ResourceUpdateEvent{
 		ResourceID:                         "/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster",
 		NewKubernetesVersionAvailableEvent: ke,
 	}

@@ -9,16 +9,22 @@ import (
 
 type options struct {
 	sendgrid        *sendgridOptions
+	smtp            *smtpOptions
 	log             bool
 	customPublisher publisher
 }
 
 type sendgridOptions struct {
 	apiKey string
-	from   string
-	to     string
-	sub    string
-	tmpl   *template.Template
+	EmailTemplate
+}
+
+type smtpOptions struct {
+	host     string
+	port     int
+	username string
+	password string
+	EmailTemplate
 }
 
 type Options func(options *options) error
@@ -31,29 +37,26 @@ func WithLogging() Options {
 	}
 }
 
-func WithSendgrid(apiKey, from, to, sub string, tmpl *template.Template) Options {
+func WithSendgrid(apiKey string, email EmailTemplate) Options {
 	return func(options *options) error {
 		if apiKey == "" {
-			return errors.New("API key required")
+			return errors.New("SendGrid API key required")
 		}
-		if from == "" {
-			return errors.New("from address required")
+		if email.From == "" {
+			return errors.New("SendGrid from address required")
 		}
-		if to == "" {
-			return errors.New("to address required")
+		if email.To == "" {
+			return errors.New("SendGrid to address required")
 		}
-		if sub == "" {
-			return errors.New("subject required")
+		if email.Subject == "" {
+			return errors.New("SendGrid subject required")
 		}
-		if tmpl == nil {
-			tmpl = template.Must(template.New("email").Parse(TemplateEmail))
+		if email.Templ == nil {
+			email.Templ = template.Must(template.New("email").Parse(TemplateEmail))
 		}
 		s := sendgridOptions{
-			apiKey: apiKey,
-			from:   from,
-			to:     to,
-			sub:    sub,
-			tmpl:   tmpl,
+			apiKey:        apiKey,
+			EmailTemplate: email,
 		}
 		options.sendgrid = &s
 		log.Debug().Msg("Configured SendGrid publisher")
@@ -61,13 +64,52 @@ func WithSendgrid(apiKey, from, to, sub string, tmpl *template.Template) Options
 	}
 }
 
-func WithPublisherFunc(fn func(e VersionUpdateEvent) error) Options {
+func WithPublisherFunc(fn func(e ResourceUpdateEvent) error) Options {
 	return func(options *options) error {
 		if fn == nil {
 			return errors.New("publisher func must not be nil")
 		}
 		options.customPublisher = fn
 		log.Debug().Msg("Configured custom publisher")
+		return nil
+	}
+}
+
+func WithSMTP(host string, port int, username string, password string, email EmailTemplate) Options {
+	return func(options *options) error {
+		if host == "" {
+			return errors.New("SMTP host required")
+		}
+		if port == 0 {
+			return errors.New("SMTP port required")
+		}
+		if username == "" {
+			return errors.New("SMTP username required")
+		}
+		if password == "" {
+			return errors.New("SMTP password required")
+		}
+		if email.From == "" {
+			return errors.New("SMTP from address required")
+		}
+		if email.To == "" {
+			return errors.New("SMTP to address required")
+		}
+		if email.Subject == "" {
+			return errors.New("SMTP subject required")
+		}
+		if email.Templ == nil {
+			email.Templ = template.Must(template.New("email").Parse(TemplateEmail))
+		}
+		s := smtpOptions{
+			host:          host,
+			port:          port,
+			username:      username,
+			password:      password,
+			EmailTemplate: email,
+		}
+		options.smtp = &s
+		log.Debug().Msg("Configured SMTP publisher")
 		return nil
 	}
 }

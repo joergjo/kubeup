@@ -1,32 +1,22 @@
 package kubeup
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
+	"github.com/go-mail/mail/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/sendgrid/sendgrid-go"
-	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	sgmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-const TemplateEmail = `
-<h1>New Kubernetes version available</h1>
-<h2>Resource ID: {{ .ResourceID }}</h2>
-<table>
-<tr><td>Latest supported version</td><td>{{ .LatestSupportedKubernetesVersion }}</td></tr>
-<tr><td>Latest stable version</td><td>{{ .LatestStableKubernetesVersion }}</td></tr>
-<tr><td>Lowest minor version</td><td>{{ .LowestMinorKubernetesVersion }} </td></tr>
-<tr><td>Latest preview version</td><td>{{ .LatestPreviewKubernetesVersion }}</td></tr>
-</table>`
-
-type publisher func(e VersionUpdateEvent) error
+type publisher func(e ResourceUpdateEvent) error
 
 type Publisher struct {
 	publishers []publisher
 }
 
-func (p *Publisher) Publish(e VersionUpdateEvent) error {
+func (p *Publisher) Publish(e ResourceUpdateEvent) error {
 	var result error
 	for _, pub := range p.publishers {
 		if err := pub(e); err != nil {
@@ -54,6 +44,9 @@ func NewPublisher(opts ...Options) (*Publisher, error) {
 	if options.sendgrid != nil {
 		p.publishers = append(p.publishers, newSendGridHandler(*options.sendgrid))
 	}
+	if options.smtp != nil {
+		p.publishers = append(p.publishers, newSMTPHandler(*options.smtp))
+	}
 	if options.customPublisher != nil {
 		p.publishers = append(p.publishers, options.customPublisher)
 	}
@@ -63,23 +56,21 @@ func NewPublisher(opts ...Options) (*Publisher, error) {
 
 func newSendGridHandler(s sendgridOptions) publisher {
 	client := sendgrid.NewSendClient(s.apiKey)
-	return func(e VersionUpdateEvent) error {
-		b := make([]byte, 0, 512)
-		buf := bytes.NewBuffer(b)
-		if err := s.tmpl.Execute(buf, e); err != nil {
+	return func(e ResourceUpdateEvent) error {
+		html, err := s.EmailTemplate.Html(e)
+		if err != nil {
 			return err
 		}
 
-		from := mail.NewEmail("Kubeup", s.from)
-		to := mail.NewEmail("Kubernetes administrator", s.to)
-		msg := mail.NewSingleEmail(from, s.sub, to, e.String(), buf.String())
+		from := sgmail.NewEmail("Kubeup", s.From)
+		to := sgmail.NewEmail("Kubernetes administrator", s.To)
+		msg := sgmail.NewSingleEmail(from, s.Subject, to, e.String(), html)
 		res, err := client.Send(msg)
 		if err != nil {
 			return err
 		}
 		if res.StatusCode < 200 && res.StatusCode >= 300 {
-			err = fmt.Errorf("unexpected SendGrid HTTP status code %d, response %q", res.StatusCode, res.Body)
-			return err
+			return fmt.Errorf("unexpected SendGrid HTTP status code %d, response %q", res.StatusCode, res.Body)
 		}
 
 		log.Debug().Str("Email", to.Address).Msgf("SendGrid notification successfully sent")
@@ -88,8 +79,32 @@ func newSendGridHandler(s sendgridOptions) publisher {
 }
 
 func newLogHandler() publisher {
-	return func(e VersionUpdateEvent) error {
+	return func(e ResourceUpdateEvent) error {
 		log.Info().Str("ResourceID", e.ResourceID).Msgf("%s", e.NewKubernetesVersionAvailableEvent)
+		return nil
+	}
+}
+
+func newSMTPHandler(s smtpOptions) publisher {
+	return func(e ResourceUpdateEvent) error {
+		html, err := s.EmailTemplate.Html(e)
+		if err != nil {
+			return err
+		}
+
+		msg := mail.NewMessage()
+		msg.SetHeader("From", s.From)
+		msg.SetHeader("To", s.To)
+		msg.SetHeader("Subject", s.Subject)
+		msg.SetBody("text/plain", e.String())
+		msg.AddAlternative("text/html", html)
+		dialer := mail.NewDialer(s.host, s.port, s.username, s.password)
+		err = dialer.DialAndSend(msg)
+		if err != nil {
+			return err
+		}
+
+		log.Debug().Str("Email", s.To).Msgf("SMTP notification successfully sent")
 		return nil
 	}
 }

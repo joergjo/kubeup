@@ -23,6 +23,29 @@ param sendGridTo string
 @description('Specifies the notification\'s email subject´.')
 param sendGridSubject string
 
+@description('Specifies the SMTP hostname.')
+param smptHost string
+
+@description('Specifies the SMTP port.')
+param smptPort int
+
+@description('Specifies the SMTP username.')
+@secure()
+param smptUsername string
+
+@description('Specifies the SMTP password.')
+@secure()
+param smptPassword string
+
+@description('Specifies the SMTP from address.')
+param smptFrom string
+
+@description('Specifies the SMTP to address.')
+param smptTo string
+
+@description('Specifies the SMTP subject.')
+param smptSubject string
+
 var port = 8000
 
 resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
@@ -36,6 +59,13 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
           name: 'sendgrid-api-key'
           value: sendGridApiKey
         }
+        {
+          name: 'smtp-username'
+          value: smptUsername
+        }
+        {
+          name: 'smtp-password'
+          value: smptPassword}
       ]
       ingress: {
         external: true
@@ -66,6 +96,34 @@ resource containerApp 'Microsoft.App/containerApps@2022-03-01' = {
             {
               name: 'KU_SENDGRID_SUBJECT'
               value: sendGridSubject
+            }
+            {
+              name: 'KU_SMTP_HOST'
+              value: smptHost
+            }
+            {
+              name: 'KU_SMTP_PORT'
+              value: string(smptPort)
+            }
+            {
+              name: 'KU_SMTP_USERNAME'
+              secretRef: 'smtp-username'
+            }
+            {
+              name: 'KU_SMTP_PASSWORD'
+              secretRef: 'smtp-password' 
+            }
+            {
+              name: 'KU_SMTP_FROM'
+              value: smptFrom
+            }
+            {
+              name: 'KU_SMTP_TO'
+              value: smptTo
+            }
+            {
+              name: 'KU_SMTP_SUBJECT'
+              value: smptSubject
             }
           ]
           resources: {

@@ -157,7 +157,7 @@ func TestPublisherError(t *testing.T) {
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
 
-	opts := kubeup.WithPublisherFunc(func(event kubeup.VersionUpdateEvent) error {
+	opts := kubeup.WithPublisherFunc(func(event kubeup.ResourceUpdateEvent) error {
 		err1 := errors.New("first error publishing event")
 		err2 := errors.New("second error publishing event")
 		return errors.Join(err1, err2)

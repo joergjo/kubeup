@@ -18,6 +18,7 @@
             },
             "env": {
             },
+            "envFile": "${workspaceFolder}/.env",
             "args": []
         }
     ]

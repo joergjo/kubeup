@@ -22,6 +22,29 @@ param sendGridTo string
 @description('Specifies the Twilio SendGrid E-mail subject.')
 param sendGridSubject string
 
+@description('Specifies the SMTP hostname.')
+param smptHost string
+
+@description('Specifies the SMTP port.')
+param smptPort int = 587
+
+@description('Specifies the SMTP username.')
+@secure()
+param smptUsername string
+
+@description('Specifies the SMTP password.')
+@secure()
+param smptPassword string
+
+@description('Specifies the SMTP from address.')
+param smptFrom string
+
+@description('Specifies the SMTP to address.')
+param smptTo string
+
+@description('Specifies the SMTP subject.')
+param smptSubject string
+
 module network 'modules/network.bicep' = {
   name: 'network'
   params: {
@@ -50,6 +73,13 @@ module app 'modules/app.bicep' = {
     sendGridFrom: sendGridFrom
     sendGridTo: sendGridTo
     sendGridSubject: sendGridSubject
+    smptHost: smptHost
+    smptPort: smptPort
+    smptUsername: smptUsername
+    smptPassword: smptPassword
+    smptFrom: smptFrom
+    smptTo: smptTo
+    smptSubject: smptSubject
   }
 }
 
