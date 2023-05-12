@@ -11,7 +11,7 @@ Events received by `kubeup` are handled internally by a `Publisher`, which is a 
 
 `kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you should [secure your WebHook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
 
-Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or you can use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
+Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
 
 ## Quickstart
 
@@ -36,7 +36,7 @@ $ az aks create --resource-group <aks-cluster-resource-group> \
     --generate-ssh-keys
 ```
 
-Just keep in mind that it may take a few days before you will see any notification. 
+Just keep in mind that it may take some time before you will receive a notification. 
 
 ### Deployment
 

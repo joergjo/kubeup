@@ -187,5 +187,4 @@ func TestPublisherError(t *testing.T) {
 	if res.Result().StatusCode != want {
 		t.Errorf("Want status code %d, got %d", want, res.Result().StatusCode)
 	}
-
 }
