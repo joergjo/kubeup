@@ -3,13 +3,13 @@ module github.com/joergjo/go-samples/kubeup
 go 1.20
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.13.0
-	github.com/rs/zerolog v1.29.0
+	github.com/cloudevents/sdk-go/v2 v2.14.0
+	github.com/go-mail/mail/v2 v2.3.0
+	github.com/rs/zerolog v1.29.1
 	github.com/sendgrid/sendgrid-go v3.12.0+incompatible
 )
 
 require (
-	github.com/go-mail/mail/v2 v2.3.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -23,4 +23,5 @@ require (
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sys v0.4.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
 )

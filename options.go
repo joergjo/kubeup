@@ -11,7 +11,7 @@ type options struct {
 	sendgrid        *sendgridOptions
 	smtp            *smtpOptions
 	log             bool
-	customPublisher publisher
+	customPublisher PublisherFunc
 }
 
 type sendgridOptions struct {
@@ -64,10 +64,10 @@ func WithSendgrid(apiKey string, email EmailTemplate) Options {
 	}
 }
 
-func WithPublisherFunc(fn func(e ResourceUpdateEvent) error) Options {
+func WithPublisherFunc(fn PublisherFunc) Options {
 	return func(options *options) error {
 		if fn == nil {
-			return errors.New("publisher func must not be nil")
+			return errors.New("PublisherFunc must not be nil")
 		}
 		options.customPublisher = fn
 		log.Debug().Msg("Configured custom publisher")

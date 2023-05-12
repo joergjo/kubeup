@@ -10,15 +10,15 @@ import (
 	sgmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type publisher func(e ResourceUpdateEvent) error
+type PublisherFunc func(e ResourceUpdateEvent) error
 
 type Publisher struct {
-	publishers []publisher
+	publisherFns []PublisherFunc
 }
 
 func (p *Publisher) Publish(e ResourceUpdateEvent) error {
 	var result error
-	for _, pub := range p.publishers {
+	for _, pub := range p.publisherFns {
 		if err := pub(e); err != nil {
 			result = errors.Join(err)
 		}
@@ -36,25 +36,25 @@ func NewPublisher(opts ...Options) (*Publisher, error) {
 		}
 	}
 	p := Publisher{
-		publishers: []publisher{},
+		publisherFns: []PublisherFunc{},
 	}
 	if options.log {
-		p.publishers = append(p.publishers, newLogHandler())
+		p.publisherFns = append(p.publisherFns, newLogPublisher())
 	}
 	if options.sendgrid != nil {
-		p.publishers = append(p.publishers, newSendGridHandler(*options.sendgrid))
+		p.publisherFns = append(p.publisherFns, newSendGridPublisher(*options.sendgrid))
 	}
 	if options.smtp != nil {
-		p.publishers = append(p.publishers, newSMTPHandler(*options.smtp))
+		p.publisherFns = append(p.publisherFns, newSMTPPublisher(*options.smtp))
 	}
 	if options.customPublisher != nil {
-		p.publishers = append(p.publishers, options.customPublisher)
+		p.publisherFns = append(p.publisherFns, options.customPublisher)
 	}
 
 	return &p, nil
 }
 
-func newSendGridHandler(s sendgridOptions) publisher {
+func newSendGridPublisher(s sendgridOptions) PublisherFunc {
 	client := sendgrid.NewSendClient(s.apiKey)
 	return func(e ResourceUpdateEvent) error {
 		html, err := s.EmailTemplate.Html(e)
@@ -78,14 +78,14 @@ func newSendGridHandler(s sendgridOptions) publisher {
 	}
 }
 
-func newLogHandler() publisher {
+func newLogPublisher() PublisherFunc {
 	return func(e ResourceUpdateEvent) error {
 		log.Info().Str("ResourceID", e.ResourceID).Msgf("%s", e.NewKubernetesVersionAvailableEvent)
 		return nil
 	}
 }
 
-func newSMTPHandler(s smtpOptions) publisher {
+func newSMTPPublisher(s smtpOptions) PublisherFunc {
 	return func(e ResourceUpdateEvent) error {
 		html, err := s.EmailTemplate.Html(e)
 		if err != nil {
