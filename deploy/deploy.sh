@@ -9,7 +9,7 @@ location=${KU_LOCATION:-westeurope}
 image=${KU_IMAGE:-joergjo/kubeup:latest}
 timestamp=$(date +%s)
 
-echo "Using resource group $resource_group in $location"
+echo "Using resource group $resource_group in $location."
 
 az group create \
   --resource-group "$resource_group" \
@@ -35,7 +35,7 @@ if [[ -z "$fqdn" ]]; then
     exit 1
 fi
 
-echo "Kubeup has been deployed successfully. The webhook URL is https://$fqdn"
+echo "Kubeup has been deployed successfully. The webhook URL is https://$fqdn."
 
 if [[ -z "$KU_AKS_CLUSTER" || -z "$KU_AKS_RESOURCE_GROUP" ]]; then
     echo "KU_AKS_CLUSTER or KU_AKS_RESOURCE_GROUP not set. Skipping Event Grid topic creation."
