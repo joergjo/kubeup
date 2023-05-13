@@ -2,14 +2,14 @@
 
 `kubeup` is a sample WebHook written in [Go](https://go.dev) to process Azure Kubernetes Service (AKS) [CloudEvents](https://cloudevents.io) that notify receivers of new Kubernetes versions being available in AKS. Refer to [Quickstart: Subscribe to Azure Kubernetes Service (AKS) events with Azure Event Grid (Preview)](https://docs.microsoft.com/en-us/azure/aks/quickstart-event-grid) and [WebHook Event delivery](https://docs.microsoft.com/en-us/azure/event-grid/webhook-event-delivery) if you want to learn more about the underlying concepts.
 
-Events received by `kubeup` are handled internally by a `Publisher`, which is a struct that holds a slice of `PublisherFunc` functions. `kubeup` provides various implemnetations out of the box:
+Events received by `kubeup` are handled internally by a `Publisher`, which is a struct that holds a slice of `PublisherFunc` functions. `kubeup` provides various `PublisherFunc` implementations to handle these events:
 
 - Write to stderr using [zerolog](github.com/rs/zerolog).
 - Send an email using the [Twilio SendGrid](https://sendgrid.com) API.
 - Send an email using SMTP.
 - Provide your own `PublisherFunc`.
 
-`kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you should [secure your WebHook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
+`kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you must [secure your WebHook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
 
 Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
 
@@ -19,33 +19,37 @@ Since Azure Event Grid delivers events only to public endpoints, you must either
 
 1. An Azure subscription. Sign up [for free](https://azure.microsoft.com/free/).
 2. Access to the [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli), either installed locally or using the [Azure Cloud Shell](https://shell.azure.com). Make sure to have Bicep CLI installed as well by running `az bicep install`.
-3. A bash shell to execute the included deployment script - on Windows 10/11 use the [Window Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install).
-4. If you want to send notifications through email, you need either a [Twilio SendGrid account](https://sendgrid.com/pricing/) or access to an SMTP host to send email. [Mailtrap](https://mailtrap.io) has a free tier that works great for this. 
+3. A bash shell to execute the included deployment script. On Windows 10/11 use the [Window Subsystem for Linux](https://docs.microsoft.com/en-us/windows/wsl/install).
+4. If you want to send notifications through email, you need either a [Twilio SendGrid account](https://sendgrid.com/pricing/) or access to an SMTP host to send email. [Mailtrap](https://mailtrap.io) has a free tier that works great with `kubeup`. 
 
 ### Creating an AKS cluster
 
-If you don't have an existing AKS cluster, you can create a small cluster to test `kubeup` using the Azure CLI:
+If you don't have an existing AKS cluster, create a small cluster to test `kubeup` using the Azure CLI:
 
 ```bash
-$ az group create --name <aks-cluster-resource-group> \
-    --location <region>
-$ az aks create --resource-group <aks-cluster-resource-group> \
-    --name <aks-cluster-name> \
-    --location <region> \
+export KU_AKS_CLUSTER="aks-rg"
+export KU_AKS_RESOURCE_GROUP="aks-cluster"
+export KU_LOCATION="northeurope"
+az group create --name $KU_AKS_RESOURCE_GROUP \
+    --location $KU_LOCATION
+az aks create --resource-group $KU_AKS_RESOURCE_GROUP \
+    --name $KU_AKS_CLUSTER \
+    --location $KU_LOCATION \
     --node-count 2 \
     --generate-ssh-keys
 ```
 
-Just keep in mind that it may take some time before you will receive a notification. 
+> It may take some time before you will receive a notification, since this requires
+> new Kubernetes version to become available for AKS. 
 
 ### Deployment
 
-Use the included deployment script to deploy `kubeup` to an Azure Container App that uses logging to stderr, Twilio SendGrid, or SMTP depending on the configuration you provide. The Bicep templates will both deploy a `kubeup` Azure Container App and create a WebHook subscription for your AKC cluster.
+Use the included deployment script to deploy `kubeup` to an Azure Container App that uses logging to stderr, Twilio SendGrid, or SMTP depending on the configuration you provide. The Bicep templates will both deploy a `kubeup` Azure Container App and create a WebHook subscription for your AKS cluster.
 
 ```bash
-$ export KU_RESOURCE_GROUP=my-kubeup-rg
-$ cd kubeup/deploy
-$ ./deploy.sh
+export KU_RESOURCE_GROUP=kubeup-rg
+cd kubeup/deploy
+./deploy.sh
 ```
 
 All resources are created in the same region. You can override the default settings
@@ -56,7 +60,7 @@ environment variables with no default value are required.
 | ------------------------ | ---------------------------------------| ----------------------- |
 | `KU_RESOURCE_GROUP`      | Resource group to deploy to            | none                    |
 | `KU_LOCATION`            | Azure region to deploy to              | `westeurope`            |
-| `KU_IMAGE`               | `kubeup` container image and tag       | `joergjo/kubeup:stable` |
+| `KU_IMAGE`               | `kubeup` container image and tag       | `joergjo/kubeup:latest` |
 | `KU_AKS_CLUSTER`         | AKS cluster resource name              | none                    |
 | `KU_AKS_RESOURCE_GROUP`  | AKS cluster resource group             | none                    |
 | `KU_SENDGRID_APIKEY`     | Twilio SendGrid API key                | none                    |
@@ -74,17 +78,17 @@ environment variables with no default value are required.
 If you do not provide `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`, the script will only deploy
 the `kubeup` webhook. You can rerun the deployment script later again with `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`set to complete the deployment.
 
-Now, once Kubernetes upgrades are published for your AKS cluster, you will receive an email (if configured) and find a log entry in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
+Once Kubernetes upgrades are published for your AKS cluster, you will receive an email (if configured) and find a log entry in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
 
 ## Building `kubeup`
 
 Building `kubeup` requires [Go 1.20 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`.
 
 ```bash
-$ cd kubeup
-$ go test -v ./...
-$ go build -o ./kubeup ./cmd/main.go
-$ ./kubeup --help
+cd kubeup
+go test -v ./...
+go build -o ./kubeup ./cmd/main.go
+./kubeup --help
 ```
 
 The repo also contains task definitions and debug settings for Visual Studio Code.
@@ -95,16 +99,16 @@ The repo also contains task definitions and debug settings for Visual Studio Cod
 You can use the included `Dockerfile` to build your own container image instead and run `kubeup` in Docker, Podman etc. 
 
 ```bash
-$ cd kubeup
+cd kubeup
 
-$ # Build a local Docker image
-$ docker compose build
+# Build a local Docker image
+docker compose build
 
-$ # Run a container
-$ docker compose up -d
+# Run a container
+docker compose up -d
 
-$ # Shut down the container
-$ docker compose down
+# Shut down the container
+docker compose down
 ```
 
 You can override the container image's name and tag by exporting the environment variables `IMAGE` and `TAG` or adding them to an [`.env`](https://docs.docker.com/compose/environment-variables/#the-env-file) file.
