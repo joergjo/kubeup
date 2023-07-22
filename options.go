@@ -2,7 +2,6 @@ package kubeup
 
 import (
 	"errors"
-	"html/template"
 
 	"github.com/rs/zerolog/log"
 )
@@ -16,7 +15,7 @@ type options struct {
 
 type sendgridOptions struct {
 	apiKey string
-	EmailTemplate
+	*EmailTemplate
 }
 
 type smtpOptions struct {
@@ -24,7 +23,7 @@ type smtpOptions struct {
 	port     int
 	username string
 	password string
-	EmailTemplate
+	*EmailTemplate
 }
 
 type Options func(options *options) error
@@ -37,7 +36,7 @@ func WithLogging() Options {
 	}
 }
 
-func WithSendgrid(apiKey string, email EmailTemplate) Options {
+func WithSendgrid(apiKey string, email *EmailTemplate) Options {
 	return func(options *options) error {
 		if apiKey == "" {
 			return errors.New("SendGrid API key required")
@@ -51,8 +50,8 @@ func WithSendgrid(apiKey string, email EmailTemplate) Options {
 		if email.Subject == "" {
 			return errors.New("SendGrid subject required")
 		}
-		if email.Templ == nil {
-			email.Templ = template.Must(template.New("email").Parse(TemplateEmail))
+		if email.Tmpl == nil {
+			return errors.New("SendGrid HTML template required")
 		}
 		s := sendgridOptions{
 			apiKey:        apiKey,
@@ -75,7 +74,7 @@ func WithPublisherFunc(fn PublisherFunc) Options {
 	}
 }
 
-func WithSMTP(host string, port int, username string, password string, email EmailTemplate) Options {
+func WithSMTP(host string, port int, username string, password string, email *EmailTemplate) Options {
 	return func(options *options) error {
 		if host == "" {
 			return errors.New("SMTP host required")
@@ -98,8 +97,8 @@ func WithSMTP(host string, port int, username string, password string, email Ema
 		if email.Subject == "" {
 			return errors.New("SMTP subject required")
 		}
-		if email.Templ == nil {
-			email.Templ = template.Must(template.New("email").Parse(TemplateEmail))
+		if email.Tmpl == nil {
+			return errors.New("SMTP HTML template required")
 		}
 		s := smtpOptions{
 			host:          host,

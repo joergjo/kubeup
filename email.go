@@ -3,29 +3,31 @@ package kubeup
 import (
 	"bytes"
 	"html/template"
+
+	"github.com/joergjo/go-samples/kubeup/templates"
 )
 
 type EmailTemplate struct {
 	From    string
 	To      string
 	Subject string
-	Templ   *template.Template
+	Tmpl    *template.Template
 }
 
-func (e EmailTemplate) Html(ve ResourceUpdateEvent) (string, error) {
+func NewEmailTemplate(from, to, subject, tmpl string) *EmailTemplate {
+	t := EmailTemplate{
+		From:    from,
+		To:      to,
+		Subject: subject,
+		Tmpl:    template.Must(template.ParseFS(templates.FS, tmpl)),
+	}
+	return &t
+}
+
+func (e *EmailTemplate) Html(data any) (string, error) {
 	var buf bytes.Buffer
-	if err := e.Templ.Execute(&buf, ve); err != nil {
+	if err := e.Tmpl.Execute(&buf, data); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
 }
-
-const TemplateEmail = `
-<h1>New Kubernetes version available</h1>
-<h2>Resource ID: {{ .ResourceID }}</h2>
-<table>
-<tr><td>Latest supported version</td><td>{{ .LatestSupportedKubernetesVersion }}</td></tr>
-<tr><td>Latest stable version</td><td>{{ .LatestStableKubernetesVersion }}</td></tr>
-<tr><td>Lowest minor version</td><td>{{ .LowestMinorKubernetesVersion }} </td></tr>
-<tr><td>Latest preview version</td><td>{{ .LatestPreviewKubernetesVersion }}</td></tr>
-</table>`

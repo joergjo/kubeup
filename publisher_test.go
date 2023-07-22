@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/joergjo/go-samples/kubeup"
+	"github.com/joergjo/go-samples/kubeup/templates"
 )
 
 func TestMailTemplate(t *testing.T) {
@@ -20,7 +21,7 @@ func TestMailTemplate(t *testing.T) {
 		NewKubernetesVersionAvailableEvent: ke,
 	}
 
-	tmpl := template.Must(template.New("email").Parse(kubeup.TemplateEmail))
+	tmpl := template.Must(template.ParseFS(templates.FS, "resourceUpdate.gohtml"))
 	var b bytes.Buffer
 	err := tmpl.Execute(&b, &vue)
 	if err != nil {

@@ -39,12 +39,12 @@ func main() {
 		"KU_SENDGRID_FROM",
 		"KU_SENDGRID_TO",
 		"KU_SENDGRID_SUBJECT"); envVars != nil {
-		email := kubeup.EmailTemplate{
-			From:    envVars["KU_SENDGRID_FROM"],
-			To:      envVars["KU_SENDGRID_TO"],
-			Subject: envVars["KU_SENDGRID_SUBJECT"],
-			Templ:   nil,
-		}
+
+		email := kubeup.NewEmailTemplate(
+			envVars["KU_SENDGRID_FROM"],
+			envVars["KU_SENDGRID_TO"],
+			envVars["KU_SENDGRID_SUBJECT"],
+			"resourceUpdate.gohtml")
 		opts = append(
 			opts,
 			kubeup.WithSendgrid(envVars["KU_SENDGRID_APIKEY"], email))
@@ -56,12 +56,11 @@ func main() {
 		"KU_SMTP_FROM",
 		"KU_SMTP_TO",
 		"KU_SMTP_SUBJECT"); envVars != nil {
-		email := kubeup.EmailTemplate{
-			From:    envVars["KU_SMTP_FROM"],
-			To:      envVars["KU_SMTP_TO"],
-			Subject: envVars["KU_SMTP_SUBJECT"],
-			Templ:   nil,
-		}
+		email := kubeup.NewEmailTemplate(
+			envVars["KU_SMTP_FROM"],
+			envVars["KU_SMTP_TO"],
+			envVars["KU_SMTP_SUBJECT"],
+			"resourceUpdate.gohtml")
 		port, err := strconv.Atoi(envVars["KU_SMTP_PORT"])
 		if err != nil {
 			log.Fatal().Err(err).Msg("Fatal error parsing SMTP port")
