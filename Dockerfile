@@ -1,5 +1,5 @@
-FROM golang:1.20 AS builder
-
+FROM --platform=$BUILDPLATFORM golang:1.20 AS builder
+ARG TARGETOS TARGETARCH
 WORKDIR /build
 
 # Enable Go's DNS resolver to read from /etc/hosts
@@ -18,7 +18,7 @@ RUN go mod download
 
 # Copy our source code over and build the binary
 COPY . .
-RUN CGO_ENABLED=0 go build -ldflags '-s -w' -o kubeup ./cmd/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags '-s -w' -o kubeup ./cmd/main.go
 
 FROM scratch AS final
 EXPOSE 8000
