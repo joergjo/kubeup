@@ -2,14 +2,17 @@ version: "3.9"
 
 services:
   kubeup:
-    image: ${IMAGE:-kubeup}:${TAG:-latest}
+    image: ${IMAGE:-kubeup}:${TAG:-dev}
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
-      - KU_SENDGRID_APIKEY=${KU_SENDGRID_APIKEY}
-      - KU_SENDGRID_FROM=${KU_SENDGRID_FROM}
-      - KU_SENDGRID_TO=${KU_SENDGRID_TO}
-      - KU_SENDGRID_SUBJECT=${KU_SENDGRID_SUBJECT}
+      - KU_SMTP_FROM=${KU_SMTP_FROM}
+      - KU_SMTP_TO=${KU_SMTP_TO}
+      - KU_SMTP_SUBJECT=${KU_SMTP_SUBJECT}
+      - KU_SMTP_PORT=${KU_SMTP_PORT:-587}
+      - KU_SMTP_HOST=${KU_SMTP_HOST}
+      - KU_SMTP_USERNAME=${KU_SMTP_USERNAME}
+      - KU_SMTP_PASSWORD=${KU_SMTP_PASSWORD}
