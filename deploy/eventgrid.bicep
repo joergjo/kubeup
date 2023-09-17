@@ -25,6 +25,11 @@ resource eventSubscription 'Microsoft.EventGrid/eventSubscriptions@2022-06-15' =
     filter: {
       includedEventTypes: [
         'Microsoft.ContainerService.NewKubernetesVersionAvailable'
+        'Microsoft.ContainerService.ClusterSupportEnded'
+        'Microsoft.ContainerService.ClusterSupportEnding'
+        'Microsoft.ContainerService.NodePoolRollingFailed'
+        'Microsoft.ContainerService.NodePoolRollingStarted'
+        'Microsoft.ContainerService.NodePoolRollingSucceeded'
       ]
     }
   }

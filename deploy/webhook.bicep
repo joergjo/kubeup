@@ -4,23 +4,23 @@ param location string = resourceGroup().location
 @description('Specifies the Container App\'s name.')
 @minLength(5)
 @maxLength(12)
-param appName string
+param appName string = 'kubeup'
 
 @description('Specifies the Container App\'s image.')
 param image string
 
+@description('Specifies the notification\'s email From address.')
+param emailFrom string
+
+@description('Specifies the notification\'s email To address.')
+param emailTo string
+
+@description('Specifies the notification\'s email subject´.')
+param emailSubject string
+
 @description('Specifies the Twilio SendGrid API Key.')
 @secure()
 param sendGridApiKey string
-
-@description('Specifies the Twilio SendGrid E-mail from address.')
-param sendGridFrom string
-
-@description('Specifies the Twilio SendGrid E-mail to address.')
-param sendGridTo string
-
-@description('Specifies the Twilio SendGrid E-mail subject.')
-param sendGridSubject string
 
 @description('Specifies the SMTP hostname.')
 param smtpHost string
@@ -36,20 +36,13 @@ param smtpUsername string
 @secure()
 param smtpPassword string
 
-@description('Specifies the SMTP from address.')
-param smtpFrom string
-
-@description('Specifies the SMTP to address.')
-param smtpTo string
-
-@description('Specifies the SMTP subject.')
-param smtpSubject string
+var namePrefix = '${appName}-${uniqueString(resourceGroup().id)}'
 
 module network 'modules/network.bicep' = {
   name: 'network'
   params: {
     location: location
-    vnetName: '${appName}-vnet'
+    namePrefix: namePrefix
   }
 }
 
@@ -57,7 +50,7 @@ module environment 'modules/environment.bicep' = {
   name: 'environment'
   params: {
     location: location
-    namePrefix: appName
+    namePrefix: namePrefix
     infrastructureSubnetId: network.outputs.infraSubnetId
   }
 }
@@ -69,17 +62,14 @@ module app 'modules/app.bicep' = {
     location: location
     environmentId: environment.outputs.environmentId
     image: image
+    emailFrom: emailFrom
+    emailTo: emailTo
+    emailSubject: emailSubject
     sendGridApiKey: sendGridApiKey
-    sendGridFrom: sendGridFrom
-    sendGridTo: sendGridTo
-    sendGridSubject: sendGridSubject
     smtpHost: smtpHost
     smtpPort: smtpPort
     smtpUsername: smtpUsername
     smtpPassword: smtpPassword
-    smtpFrom: smtpFrom
-    smtpTo: smtpTo
-    smtpSubject: smtpSubject
   }
 }
 

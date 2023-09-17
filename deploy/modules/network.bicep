@@ -1,11 +1,11 @@
-@description('Specifies the name of the virtual network.')
-param vnetName string
+@description('Specifies the name prefix of all resources.')
+param namePrefix string
 
 @description('Specifies the location to deploy to.')
 param location string
 
-resource vnet 'Microsoft.Network/virtualNetworks@2022-09-01' = {
-  name: vnetName
+resource vnet 'Microsoft.Network/virtualNetworks@2023-05-01' = {
+  name: '${namePrefix}-vnet'
   location: location
   properties: {
     addressSpace: {
@@ -26,6 +26,44 @@ resource vnet 'Microsoft.Network/virtualNetworks@2022-09-01' = {
               }
             }
           ]
+          networkSecurityGroup: {
+            id: nsg.id
+          }
+        }
+      }
+    ]
+  }
+}
+
+resource nsg 'Microsoft.Network/networkSecurityGroups@2023-05-01' = {
+  name: '${namePrefix}-default-nsg'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'AllowAnyHTTPSInbound'
+        properties: {
+          priority: 1000
+          access: 'Allow'
+          direction: 'Inbound'
+          destinationPortRange: '443'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+        }
+      }
+      {
+        name: 'AllowAnyHTTPInbound'
+        properties: {
+          priority: 1001
+          access: 'Allow'
+          direction: 'Inbound'
+          destinationPortRange: '80'
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
         }
       }
     ]

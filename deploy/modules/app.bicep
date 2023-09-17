@@ -10,18 +10,18 @@ param environmentId string
 @description('Specifies the container image.')
 param image string
 
+@description('Specifies the notification\'s email From address.')
+param emailFrom string
+
+@description('Specifies the notification\'s email To address.')
+param emailTo string
+
+@description('Specifies the notification\'s email subject´.')
+param emailSubject string
+
 @description('Specifies the SendGrid API key.')
 @secure()
 param sendGridApiKey string
-
-@description('Specifies the notification\'s email From address.')
-param sendGridFrom string
-
-@description('Specifies the notification\'s email To address.')
-param sendGridTo string
-
-@description('Specifies the notification\'s email subject´.')
-param sendGridSubject string
 
 @description('Specifies the SMTP hostname.')
 param smtpHost string
@@ -36,15 +36,6 @@ param smtpUsername string
 @description('Specifies the SMTP password.')
 @secure()
 param smtpPassword string
-
-@description('Specifies the SMTP from address.')
-param smtpFrom string
-
-@description('Specifies the SMTP to address.')
-param smtpTo string
-
-@description('Specifies the SMTP subject.')
-param smtpSubject string
 
 var port = 8000
 
@@ -67,20 +58,20 @@ var secrets = filter(allSecrets, s => !empty(s.value))
 
 var allEnvVars = [
   {
+    name: 'KU_EMAIL_FROM'
+    value: emailFrom
+  }
+  {
+    name: 'KU_EMAIL_TO'
+    value: emailTo
+  }
+  {
+    name: 'KU_EMAIL_SUBJECT'
+    value: emailSubject
+  }
+  {
     name: 'KU_SENDGRID_API_KEY'
     secretRef: 'sendgrid-api-key'
-  }
-  {
-    name: 'KU_SENDGRID_FROM'
-    value: sendGridFrom
-  }
-  {
-    name: 'KU_SENDGRID_TO'
-    value: sendGridTo
-  }
-  {
-    name: 'KU_SENDGRID_SUBJECT'
-    value: sendGridSubject
   }
   {
     name: 'KU_SMTP_HOST'
@@ -98,25 +89,13 @@ var allEnvVars = [
     name: 'KU_SMTP_PASSWORD'
     secretRef: 'smtp-password'
   }
-  {
-    name: 'KU_SMTP_FROM'
-    value: smtpFrom
-  }
-  {
-    name: 'KU_SMTP_TO'
-    value: smtpTo
-  }
-  {
-    name: 'KU_SMTP_SUBJECT'
-    value: smtpSubject
-  }
 ]
 
 var secretNames = map(secrets, s => s.name)
 
 var envVars = filter(allEnvVars, e => (contains(e, 'secretRef') && contains(secretNames, e.secretRef)) || contains(e, 'value'))
 
-resource containerApp 'Microsoft.App/containerApps@2023-04-01-preview' = {
+resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: name
   location: location
   properties: {

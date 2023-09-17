@@ -21,12 +21,10 @@ fqdn=$(az deployment group create \
   --name "kubeup-webhook-$timestamp" \
   --template-file webhook.bicep \
   --parameters location="$location" image="$image" appName="kubeup" \
-    sendGridApiKey="$KU_SENDGRID_APIKEY" sendGridFrom="$KU_SENDGRID_FROM" \
-    sendGridTo="$KU_SENDGRID_TO" sendGridSubject="$KU_SENDGRID_SUBJECT" \
+    sendGridApiKey="$KU_SENDGRID_APIKEY" emailFrom="$KU_EMAIL_FROM" \
+    emailTo="$KU_EMAIL_TO" emailSubject="$KU_EMAIL_SUBJECT" \
     smtpHost="$KU_SMTP_HOST" smtpPort="$KU_SMTP_PORT" \
     smtpUsername="$KU_SMTP_USERNAME" smtpPassword="$KU_SMTP_PASSWORD" \
-    smtpFrom="$KU_SMTP_FROM" smtpTo="$KU_SMTP_TO" \
-    smtpSubject="$KU_SMTP_SUBJECT" \
   --query properties.outputs.fqdn.value \
   --output tsv)
 

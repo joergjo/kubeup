@@ -1,0 +1,8 @@
+<h1>New Kubernetes version available</h1>
+<h2>Resource ID: {{ .Source }}</h2>
+<table>
+    <tr><td>Latest supported version</td><td>{{ .Event.LatestSupportedKubernetesVersion }}</td></tr>
+    <tr><td>Latest stable version</td><td>{{ .Event.LatestStableKubernetesVersion }}</td></tr>
+    <tr><td>Lowest minor version</td><td>{{ .Event.LowestMinorKubernetesVersion }} </td></tr>
+    <tr><td>Latest preview version</td><td>{{ .Event.LatestPreviewKubernetesVersion }}</td></tr>
+</table>

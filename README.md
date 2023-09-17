@@ -11,7 +11,9 @@ Events received by `kubeup` are handled internally by a `Publisher`, which is a 
 
 `kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you must [secure your WebHook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
 
-Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
+Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. 
+
+This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
 
 ## Quickstart
 
@@ -63,10 +65,10 @@ environment variables with no default value are required.
 | `KU_IMAGE`               | `kubeup` container image and tag       | `joergjo/kubeup:latest` |
 | `KU_AKS_CLUSTER`         | AKS cluster resource name              | none                    |
 | `KU_AKS_RESOURCE_GROUP`  | AKS cluster resource group             | none                    |
+| `KU_EMAIL_FROM`          | Recipient email address                | none                    |
+| `KU_EMAIL_TO`            | Sender email address                   | none                    |
+| `KU_EMAIL_SUBJECT`       | Email subject                          | none                    |
 | `KU_SENDGRID_APIKEY`     | Twilio SendGrid API key                | none                    |
-| `KU_SENDGRID_FROM`       | Twilio SendGrid receiver email address | none                    |
-| `KU_SENDGRID_TO`         | Twilio SendGrid sender email address   | none                    |
-| `KU_SENDGRID_SUBJECT`    | Twilio SendGrid email subject          | none                    |
 | `KU_SMTP_HOST`           | SMTP hostname                          | none                    |
 | `KU_SMTP_PORT`           | SMTP port                              | `587`                    |
 | `KU_SMTP_USERNAME`       | SMTP username                          | none                    |
@@ -75,14 +77,14 @@ environment variables with no default value are required.
 | `KU_SMTP_TO`             | SMTP receiver email address            | none                    |
 | `KU_SMTP_SUBJECT`        | SMTP email subject                     | none                    |
 
-If you do not provide `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`, the script will only deploy
+If you do not set `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`, the script will only deploy
 the `kubeup` webhook. You can rerun the deployment script later again with `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`set to complete the deployment.
 
 Once Kubernetes upgrades are published for your AKS cluster, you will receive an email (if configured) and find a log entry in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
 
 ## Building `kubeup`
 
-Building `kubeup` requires [Go 1.20 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`.
+Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`.
 
 ```bash
 cd kubeup
@@ -136,12 +138,14 @@ Out of the box, `kubeup` writes all notifications to stderr. It supports the fol
 
 To enable email delivery using Twilio SendGrid, export the following environment variables before starting `kubeup`:
 
-| Environment variable     | Purpose                                | Default value           |
-| ------------------------ | ---------------------------------------| ----------------------- |
-| `KU_SENDGRID_APIKEY`     | Twilio SendGrid API key                | none                    |
-| `KU_SENDGRID_FROM`       | Twilio SendGrid receiver email address | none                    |
-| `KU_SENDGRID_TO`         | Twilio SendGrid sender email address   | none                    |
-| `KU_SENDGRID_SUBJECT`    | Twilio SendGrid email subject          | none                    |
+| Environment variable  | Purpose                 | Default value |
+| ----------------------| ------------------------| --------------|
+| `KU_SENDGRID_APIKEY`  | Twilio SendGrid API key | none          |
+| `KU_EMAIL_FROM`       | Recipient email address | none          |
+| `KU_EMAIL_TO`         | Sender email address    | none          |
+| `KU_EMAIL_SUBJECT`    | Email subject           | none          |
+
+
 
 All environment variables must be exported.
 
@@ -149,20 +153,20 @@ All environment variables must be exported.
 
 To enable email delivery using SMTP, export the following environment variables before starting `kubeup`:
 
-| Environment variable     | Purpose                                | Default value           |
-| ------------------------ | ---------------------------------------| ----------------------- |
-| `KU_SMTP_HOST`           | SMTP hostname                          | none                    |
-| `KU_SMTP_PORT`           | SMTP port                              | `587`                    |
-| `KU_SMTP_USERNAME`       | SMTP username                          | none                    |
-| `KU_SMTP_PASSWORD`       | SMTP password                          | none                    |
-| `KU_SMTP_FROM`           | SMTP sender email address              | none                    |
-| `KU_SMTP_TO`             | SMTP receiver email address            | none                    |
-| `KU_SMTP_SUBJECT`        | SMTP email subject                     | none                    |
+| Environment variable | Purpose                 | Default value |
+| ---------------------| ------------------------| --------------|
+| `KU_SMTP_HOST`       | SMTP hostname           | none          |
+| `KU_SMTP_PORT`       | SMTP port               | `587`         |
+| `KU_SMTP_USERNAME`   | SMTP username           | none          |
+| `KU_SMTP_PASSWORD`   | SMTP password           | none          |
+| `KU_EMAIL_FROM`      | Recipient email address | none          |
+| `KU_EMAIL_TO`        | Sender email address    | none          |
+| `KU_EMAIL_SUBJECT`   | Email subject           | none          |
 
 All environment variables must be exported except `KU_SMTP_PORT`.
 
 ## Testing
 
-To manually test `kubeup`, you can use the included [sample request](testdata/sample.json) and any HTTP client like [curl](https://curl.se), [httpie](https://httpie.io), [wget](https://www.gnu.org/software/wget/), or [Postman](https://www.postman.com). Send the sample request to the `kubeup` endpoint using HTTP POST.
+To manually test `kubeup`, you can use the included [sample requests](testdata/) and any HTTP client like [curl](https://curl.se), [httpie](https://httpie.io), [wget](https://www.gnu.org/software/wget/), or [Postman](https://www.postman.com). Send the sample request to the `kubeup` endpoint using HTTP POST.
 
 ![Sample request in Postman](media/postman.png)

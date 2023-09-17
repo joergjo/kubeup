@@ -1,13 +1,10 @@
 {
     "source": "/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster",
     "subject": "test-cluster",
-    "type": "Microsoft.ContainerService.NewKubernetesVersionAvailable",
+    "type": "Microsoft.ContainerService.ClusterSupportEnding",
     "id": "1234567890abcdef1234567890abcdef12345678",
     "data": {
-      "latestSupportedKubernetesVersion": "1.20.7",
-      "latestStableKubernetesVersion": "1.19.11",
-      "lowestMinorKubernetesVersion": "1.18.19",
-      "latestPreviewKubernetesVersion": "1.21.1"
+      "kubernetesVersion": "1.24.0"
     },
     "specversion": "1.0",
     "time": "2021-07-01T04:52:57.0000000Z"

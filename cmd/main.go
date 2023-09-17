@@ -35,32 +35,25 @@ func main() {
 	var opts []kubeup.Options = []kubeup.Options{
 		kubeup.WithLogging(),
 	}
-	if envVars := getEnvVars("KU_SENDGRID_APIKEY",
-		"KU_SENDGRID_FROM",
-		"KU_SENDGRID_TO",
-		"KU_SENDGRID_SUBJECT"); envVars != nil {
-
-		email := kubeup.NewEmailTemplate(
-			envVars["KU_SENDGRID_FROM"],
-			envVars["KU_SENDGRID_TO"],
-			envVars["KU_SENDGRID_SUBJECT"],
-			"resourceUpdate.gohtml")
+	if envVars := getEnvVars("KU_EMAIL_FROM",
+		"KU_EMAIL_TO",
+		"KU_EMAIL_SUBJECT"); envVars != nil {
 		opts = append(
 			opts,
-			kubeup.WithSendgrid(envVars["KU_SENDGRID_APIKEY"], email))
+			kubeup.WithEmail(
+				envVars["KU_EMAIL_FROM"],
+				envVars["KU_EMAIL_TO"],
+				envVars["KU_EMAIL_SUBJECT"]))
+	}
+	if envVars := getEnvVars("KU_SENDGRID_APIKEY"); envVars != nil {
+		opts = append(
+			opts,
+			kubeup.WithSendgrid(envVars["KU_SENDGRID_APIKEY"]))
 	}
 	if envVars := getEnvVars("KU_SMTP_HOST",
 		"KU_SMTP_PORT",
 		"KU_SMTP_USERNAME",
-		"KU_SMTP_PASSWORD",
-		"KU_SMTP_FROM",
-		"KU_SMTP_TO",
-		"KU_SMTP_SUBJECT"); envVars != nil {
-		email := kubeup.NewEmailTemplate(
-			envVars["KU_SMTP_FROM"],
-			envVars["KU_SMTP_TO"],
-			envVars["KU_SMTP_SUBJECT"],
-			"resourceUpdate.gohtml")
+		"KU_SMTP_PASSWORD"); envVars != nil {
 		port, err := strconv.Atoi(envVars["KU_SMTP_PORT"])
 		if err != nil {
 			log.Fatal().Err(err).Msg("Fatal error parsing SMTP port")
@@ -71,8 +64,7 @@ func main() {
 				envVars["KU_SMTP_HOST"],
 				port,
 				envVars["KU_SMTP_USERNAME"],
-				envVars["KU_SMTP_PASSWORD"],
-				email))
+				envVars["KU_SMTP_PASSWORD"]))
 	}
 
 	p, err := kubeup.NewPublisher(opts...)

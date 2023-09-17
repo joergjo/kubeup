@@ -70,7 +70,7 @@ func TestValidation(t *testing.T) {
 }
 
 func TestReceive(t *testing.T) {
-	ke := kubeup.NewKubernetesVersionAvailableEvent{
+	ke := kubeup.ContainerServiceNewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
@@ -87,7 +87,7 @@ func TestReceive(t *testing.T) {
 	}{
 		{
 			name:        "valid_cloudevent",
-			eventType:   kubeup.EventTypeNewKubernetesVersionAvailable,
+			eventType:   kubeup.EventNewKubernetesVersionAvailable,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data:        ke,
@@ -103,7 +103,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "get_not_allowed",
-			eventType:   kubeup.EventTypeNewKubernetesVersionAvailable,
+			eventType:   kubeup.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodGet,
@@ -111,7 +111,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "delete_not_allowed",
-			eventType:   kubeup.EventTypeNewKubernetesVersionAvailable,
+			eventType:   kubeup.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodDelete,
@@ -150,14 +150,14 @@ func TestReceive(t *testing.T) {
 }
 
 func TestPublisherError(t *testing.T) {
-	ke := kubeup.NewKubernetesVersionAvailableEvent{
+	ke := kubeup.ContainerServiceNewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
 
-	opts := kubeup.WithPublisherFunc(func(event kubeup.ResourceUpdateEvent) error {
+	opts := kubeup.WithPublisherFunc(func(m kubeup.Message) error {
 		err1 := errors.New("first error publishing event")
 		err2 := errors.New("second error publishing event")
 		return errors.Join(err1, err2)
@@ -170,7 +170,7 @@ func TestPublisherError(t *testing.T) {
 	e := cloudevents.NewEvent()
 	e.SetID("1234567890abcdef1234567890abcdef12345678")
 	e.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
-	e.SetType(kubeup.EventTypeNewKubernetesVersionAvailable)
+	e.SetType(kubeup.EventNewKubernetesVersionAvailable)
 	e.SetData(cloudevents.ApplicationCloudEventsJSON, ke)
 
 	body, err := json.Marshal(e)
