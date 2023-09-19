@@ -37,40 +37,48 @@ type ContainerServiceClusterSupportEvent struct {
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
-func (e ContainerServiceClusterSupportEvent) String() string {
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Kubernetes version: %s", e.KubernetesVersion))
-	return b.String()
+type ContainerServiceClusterSupportEndingEvent struct {
+	ContainerServiceClusterSupportEvent
+}
+
+func (e ContainerServiceClusterSupportEndingEvent) String() string {
+	return fmt.Sprintf("Support ending for Kubernetes version %s", e.KubernetesVersion)
 }
 
 type ContainerServiceClusterSupportEndedEvent struct {
 	ContainerServiceClusterSupportEvent
 }
 
-type ContainerServiceClusterSupportEndingEvent struct {
-	ContainerServiceClusterSupportEvent
+func (e ContainerServiceClusterSupportEndedEvent) String() string {
+	return fmt.Sprintf("Support ended for Kubernetes version %s", e.KubernetesVersion)
 }
 
 type ContainerServiceClusterRollingEvent struct {
 	NodePoolName string `json:"nodePoolName"`
 }
 
-func (e ContainerServiceClusterRollingEvent) String() string {
-	var b strings.Builder
-	b.WriteString(fmt.Sprintf("Node pool name: %s", e.NodePoolName))
-	return b.String()
-}
-
 type ContainerServiceNodePoolRollingStartedEvent struct {
 	ContainerServiceClusterRollingEvent
+}
+
+func (e ContainerServiceNodePoolRollingStartedEvent) String() string {
+	return fmt.Sprintf("Upgrade started for node pool %s", e.NodePoolName)
 }
 
 type ContainerServiceNodePoolRollingSucceededEvent struct {
 	ContainerServiceClusterRollingEvent
 }
 
+func (e ContainerServiceNodePoolRollingSucceededEvent) String() string {
+	return fmt.Sprintf("Upgrade succeeded for node pool %s", e.NodePoolName)
+}
+
 type ContainerServiceNodePoolRollingFailedEvent struct {
 	ContainerServiceClusterRollingEvent
+}
+
+func (e ContainerServiceNodePoolRollingFailedEvent) String() string {
+	return fmt.Sprintf("Upgrade failed for node pool name %s", e.NodePoolName)
 }
 
 type ContainerServiceEvent interface {
