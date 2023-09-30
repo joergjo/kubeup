@@ -1,1 +1,3 @@
-kubeup
+webhook
+!internal/webhook
+!cmd/webhook

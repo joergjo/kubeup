@@ -1,10 +1,10 @@
-package kubeup
+package webhook
 
 import (
 	"bytes"
 	"html/template"
 
-	"github.com/joergjo/go-samples/kubeup/templates"
+	"github.com/joergjo/go-samples/kubeup/internal/templates"
 )
 
 type Message struct {

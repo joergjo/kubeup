@@ -1,4 +1,4 @@
-package kubeup_test
+package webhook_test
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/joergjo/go-samples/kubeup"
+	"github.com/joergjo/go-samples/kubeup/internal/webhook"
 )
 
 func TestValidation(t *testing.T) {
@@ -21,7 +21,7 @@ func TestValidation(t *testing.T) {
 	}{
 		{
 			name:   "valid_origin",
-			origin: kubeup.AzureEventGridOrigin,
+			origin: webhook.AzureEventGridOrigin,
 			status: http.StatusOK,
 		},
 		{
@@ -37,8 +37,8 @@ func TestValidation(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p, _ := kubeup.NewPublisher()
-			h, err := kubeup.NewCloudEventHandler(context.Background(), p)
+			p, _ := webhook.NewPublisher()
+			h, err := webhook.NewCloudEventHandler(context.Background(), p)
 			if err != nil {
 				t.Fatalf("Error creating handler: %v", err)
 			}
@@ -70,16 +70,16 @@ func TestValidation(t *testing.T) {
 }
 
 func TestReceive(t *testing.T) {
-	newVersionEvent := kubeup.ContainerServiceNewKubernetesVersionAvailableEvent{
+	newVersionEvent := webhook.ContainerServiceNewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
-	rollingEvent := kubeup.ContainerServiceClusterRollingEvent{
+	rollingEvent := webhook.ContainerServiceClusterRollingEvent{
 		NodePoolName: "nodepool1",
 	}
-	supportEvent := kubeup.ContainerServiceClusterSupportEvent{
+	supportEvent := webhook.ContainerServiceClusterSupportEvent{
 		KubernetesVersion: "1.26.0",
 	}
 
@@ -93,7 +93,7 @@ func TestReceive(t *testing.T) {
 	}{
 		{
 			name:        "new_kubernetes_version_available",
-			eventType:   kubeup.EventNewKubernetesVersionAvailable,
+			eventType:   webhook.EventNewKubernetesVersionAvailable,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data:        newVersionEvent,
@@ -101,50 +101,50 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "nodepool_rolling_started",
-			eventType:   kubeup.EventNodePoolRollingStarted,
+			eventType:   webhook.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: kubeup.ContainerServiceNodePoolRollingStartedEvent{
+			data: webhook.ContainerServiceNodePoolRollingStartedEvent{
 				ContainerServiceClusterRollingEvent: rollingEvent,
 			},
 			status: http.StatusOK,
 		},
 		{
 			name:        "nodepool_rolling_succeeded",
-			eventType:   kubeup.EventNodePoolRollingStarted,
+			eventType:   webhook.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: kubeup.ContainerServiceNodePoolRollingSucceededEvent{
+			data: webhook.ContainerServiceNodePoolRollingSucceededEvent{
 				ContainerServiceClusterRollingEvent: rollingEvent,
 			},
 			status: http.StatusOK,
 		},
 		{
 			name:        "nodepool_rolling_failed",
-			eventType:   kubeup.EventNodePoolRollingStarted,
+			eventType:   webhook.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: kubeup.ContainerServiceNodePoolRollingFailedEvent{
+			data: webhook.ContainerServiceNodePoolRollingFailedEvent{
 				ContainerServiceClusterRollingEvent: rollingEvent,
 			},
 			status: http.StatusOK,
 		},
 		{
 			name:        "cluster_support_ending",
-			eventType:   kubeup.EventNodePoolRollingStarted,
+			eventType:   webhook.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: kubeup.ContainerServiceClusterSupportEndingEvent{
+			data: webhook.ContainerServiceClusterSupportEndingEvent{
 				ContainerServiceClusterSupportEvent: supportEvent,
 			},
 			status: http.StatusOK,
 		},
 		{
 			name:        "cluster_support_ended",
-			eventType:   kubeup.EventNodePoolRollingStarted,
+			eventType:   webhook.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: kubeup.ContainerServiceClusterSupportEndedEvent{
+			data: webhook.ContainerServiceClusterSupportEndedEvent{
 				ContainerServiceClusterSupportEvent: supportEvent,
 			},
 			status: http.StatusOK,
@@ -159,7 +159,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "get_not_allowed",
-			eventType:   kubeup.EventNewKubernetesVersionAvailable,
+			eventType:   webhook.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodGet,
@@ -167,7 +167,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "delete_not_allowed",
-			eventType:   kubeup.EventNewKubernetesVersionAvailable,
+			eventType:   webhook.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodDelete,
@@ -176,8 +176,8 @@ func TestReceive(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			p, _ := kubeup.NewPublisher()
-			h, err := kubeup.NewCloudEventHandler(context.Background(), p)
+			p, _ := webhook.NewPublisher()
+			h, err := webhook.NewCloudEventHandler(context.Background(), p)
 			if err != nil {
 				t.Fatalf("Error creating handler: %v", err)
 			}
@@ -206,27 +206,27 @@ func TestReceive(t *testing.T) {
 }
 
 func TestPublisherError(t *testing.T) {
-	event := kubeup.ContainerServiceNewKubernetesVersionAvailableEvent{
+	event := webhook.ContainerServiceNewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
 		LatestPreviewKubernetesVersion:   "1.25.0",
 	}
 
-	opts := kubeup.WithPublisherFunc(func(m kubeup.Message) error {
+	opts := webhook.WithPublisherFunc(func(m webhook.Message) error {
 		err1 := errors.New("first error publishing event")
 		err2 := errors.New("second error publishing event")
 		return errors.Join(err1, err2)
 	})
-	p, _ := kubeup.NewPublisher(opts)
-	h, err := kubeup.NewCloudEventHandler(context.Background(), p)
+	p, _ := webhook.NewPublisher(opts)
+	h, err := webhook.NewCloudEventHandler(context.Background(), p)
 	if err != nil {
 		t.Fatalf("Error creating handler: %v", err)
 	}
 	ce := cloudevents.NewEvent()
 	ce.SetID("1234567890abcdef1234567890abcdef12345678")
 	ce.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
-	ce.SetType(kubeup.EventNewKubernetesVersionAvailable)
+	ce.SetType(webhook.EventNewKubernetesVersionAvailable)
 	ce.SetData(cloudevents.ApplicationCloudEventsJSON, event)
 
 	body, err := json.Marshal(ce)

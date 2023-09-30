@@ -1,4 +1,4 @@
-package kubeup
+package webhook
 
 import (
 	"context"

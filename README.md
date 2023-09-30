@@ -1,15 +1,15 @@
 # kubeup
 
-`kubeup` is a sample WebHook written in [Go](https://go.dev) to process Azure Kubernetes Service (AKS) [CloudEvents](https://cloudevents.io) that notify receivers of new Kubernetes versions being available in AKS. Refer to [Quickstart: Subscribe to Azure Kubernetes Service (AKS) events with Azure Event Grid (Preview)](https://docs.microsoft.com/en-us/azure/aks/quickstart-event-grid) and [WebHook Event delivery](https://docs.microsoft.com/en-us/azure/event-grid/webhook-event-delivery) if you want to learn more about the underlying concepts.
+`kubeup` is a sample webhook written in [Go](https://go.dev) to process Azure Kubernetes Service (AKS) [CloudEvents](https://cloudevents.io) that notify receivers of new Kubernetes versions being available in AKS. Refer to [Quickstart: Subscribe to Azure Kubernetes Service (AKS) events with Azure Event Grid](https://docs.microsoft.com/en-us/azure/aks/quickstart-event-grid) and [Webhook event delivery](https://docs.microsoft.com/en-us/azure/event-grid/webhook-event-delivery) if you want to learn more about the underlying concepts.
 
 Events received by `kubeup` are handled internally by a `Publisher`, which is a struct that holds a slice of `PublisherFunc` functions. `kubeup` provides various `PublisherFunc` implementations to handle these events:
 
 - Write to stderr using [zerolog](github.com/rs/zerolog).
-- Send an email using the [Twilio SendGrid](https://sendgrid.com) API.
 - Send an email using SMTP.
+- Send an email using the [Twilio SendGrid](https://sendgrid.com) API.
 - Provide your own `PublisherFunc`.
 
-`kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you must [secure your WebHook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
+`kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you must [secure your webhook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
 
 Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. 
 
@@ -46,7 +46,7 @@ az aks create --resource-group $KU_AKS_RESOURCE_GROUP \
 
 ### Deployment
 
-Use the included deployment script to deploy `kubeup` to an Azure Container App that uses logging to stderr, Twilio SendGrid, or SMTP depending on the configuration you provide. The Bicep templates will both deploy a `kubeup` Azure Container App and create a WebHook subscription for your AKS cluster.
+Use the included deployment script to deploy `kubeup` to an Azure Container App that uses logging to stderr, Twilio SendGrid, or SMTP depending on the configuration you provide. The Bicep templates will both deploy a `kubeup` Azure Container App and create a webhook subscription for your AKS cluster.
 
 ```bash
 export KU_RESOURCE_GROUP=kubeup-rg
@@ -89,8 +89,8 @@ Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, ma
 ```bash
 cd kubeup
 go test -v ./...
-go build -o ./kubeup ./cmd/main.go
-./kubeup --help
+go build -o ./webhook ./cmd/webhook/main.go
+./webhook --help
 ```
 
 The repo also contains task definitions and debug settings for Visual Studio Code.
@@ -115,22 +115,22 @@ docker compose down
 
 You can override the container image's name and tag by exporting the environment variables `IMAGE` and `TAG` or adding them to an [`.env`](https://docs.docker.com/compose/environment-variables/#the-env-file) file.
 
-## Running `kubeup`
+## Running the `kubeup` webhook
 
-Out of the box, `kubeup` writes all notifications to stderr. It supports the following arguments:
+Out of the box, the `kubeup` webhook writes all notifications to stderr. It supports the following arguments:
 
 ```bash
-# Runs kubeup on its default port (8000) and default path (/webhook)
-./kubeup
+# Runs the webhook on its default port (8000) and default path (/webhook)
+./webhook
 
-# Runs kubeup on a specific path (/events)
-./kubeup -path /events
+# Runs the webhook on a specific path (/events)
+./webhook -path /events
 
-# Runs kubeup on a specific port (:8088)
-./kubeup -port 8088
+# Runs the webhook on a specific port (:8088)
+./webhook -port 8088
 
-# Runs kubeup on a specific port and path (:8088/events)
-./kubeup -path /events -port 8088
+# Runs the webhook on a specific port and path (:8088/events)
+./webhook -path /events -port 8088
 
 ```
 

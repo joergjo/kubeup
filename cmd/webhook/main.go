@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joergjo/go-samples/kubeup"
+	"github.com/joergjo/go-samples/kubeup/internal/webhook"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -32,15 +32,15 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerolog.DebugLevel)
 	}
-	var opts []kubeup.Options = []kubeup.Options{
-		kubeup.WithLogging(),
+	var opts []webhook.Options = []webhook.Options{
+		webhook.WithLogging(),
 	}
 	if envVars := getEnvVars("KU_EMAIL_FROM",
 		"KU_EMAIL_TO",
 		"KU_EMAIL_SUBJECT"); envVars != nil {
 		opts = append(
 			opts,
-			kubeup.WithEmail(
+			webhook.WithEmail(
 				envVars["KU_EMAIL_FROM"],
 				envVars["KU_EMAIL_TO"],
 				envVars["KU_EMAIL_SUBJECT"]))
@@ -48,7 +48,7 @@ func main() {
 	if envVars := getEnvVars("KU_SENDGRID_APIKEY"); envVars != nil {
 		opts = append(
 			opts,
-			kubeup.WithSendgrid(envVars["KU_SENDGRID_APIKEY"]))
+			webhook.WithSendgrid(envVars["KU_SENDGRID_APIKEY"]))
 	}
 	if envVars := getEnvVars("KU_SMTP_HOST",
 		"KU_SMTP_PORT",
@@ -60,19 +60,19 @@ func main() {
 		}
 		opts = append(
 			opts,
-			kubeup.WithSMTP(
+			webhook.WithSMTP(
 				envVars["KU_SMTP_HOST"],
 				port,
 				envVars["KU_SMTP_USERNAME"],
 				envVars["KU_SMTP_PASSWORD"]))
 	}
 
-	p, err := kubeup.NewPublisher(opts...)
+	p, err := webhook.NewPublisher(opts...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Invalid configuration")
 	}
 
-	h, err := kubeup.NewCloudEventHandler(context.Background(), p)
+	h, err := webhook.NewCloudEventHandler(context.Background(), p)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Fatal error creating CloudEvent receiver")
 	}
