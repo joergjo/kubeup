@@ -3,12 +3,8 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/joergjo/go-samples/kubeup/internal/webhook"
@@ -56,7 +52,7 @@ func main() {
 		"KU_SMTP_PASSWORD"); envVars != nil {
 		port, err := strconv.Atoi(envVars["KU_SMTP_PORT"])
 		if err != nil {
-			log.Fatal().Err(err).Msg("Fatal error parsing SMTP port")
+			log.Fatal().Err(err).Msg("parsing SMTP port")
 		}
 		opts = append(
 			opts,
@@ -69,23 +65,23 @@ func main() {
 
 	p, err := webhook.NewPublisher(opts...)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Invalid configuration")
+		log.Fatal().Err(err).Msg("invalid configuration")
 	}
 
 	h, err := webhook.NewCloudEventHandler(context.Background(), p)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Fatal error creating CloudEvent receiver")
+		log.Fatal().Err(err).Msg("fatal error creating CloudEvent receiver")
 	}
 
-	s := newServer(*port, *path, h)
+	s := webhook.New(h, *port, *path)
 	done := make(chan struct{})
-	go shutdown(s, done, 10*time.Second)
+	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
 
-	log.Info().Msgf("Starting server on port %d", *port)
+	log.Info().Msgf("starting server on port %d", *port)
 	err = s.ListenAndServe()
-	log.Info().Msgf("Waiting for server to shut down")
+	log.Info().Msgf("waiting for server to shut down")
 	<-done
-	log.Info().Err(err).Msg("Server has shut down")
+	log.Info().Err(err).Msg("server has shut down")
 }
 
 func getEnvVars(vars ...string) map[string]string {
@@ -99,32 +95,4 @@ func getEnvVars(vars ...string) map[string]string {
 		envVars[k] = v
 	}
 	return envVars
-}
-
-func newServer(port int, path string, h http.Handler) *http.Server {
-	mux := http.NewServeMux()
-	mux.Handle(path, h)
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	})
-	s := http.Server{Addr: fmt.Sprintf(":%d", port),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      mux}
-	return &s
-}
-
-func shutdown(srv *http.Server, srvClosed chan<- struct{}, timeout time.Duration) {
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigch
-	log.Warn().Msgf("Received signal %v, shutting down", sig)
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Error shutting down server")
-	}
-	close(srvClosed)
 }

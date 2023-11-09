@@ -36,7 +36,7 @@ type Options func(options *options) error
 func WithLogging() Options {
 	return func(options *options) error {
 		options.log = true
-		log.Debug().Msg("Configured log publisher")
+		log.Debug().Msg("configured log publisher")
 		return nil
 	}
 }
@@ -54,7 +54,7 @@ func WithEmail(from, to, subject string) Options {
 		}
 		e := emailOptions{from: from, to: to, subject: subject}
 		options.email = &e
-		log.Debug().Msg("Configured email")
+		log.Debug().Msg("configured email")
 		return nil
 	}
 }
@@ -65,7 +65,7 @@ func WithPublisherFunc(fn PublisherFunc) Options {
 			return errors.New("PublisherFunc must not be nil")
 		}
 		options.customPublisher = fn
-		log.Debug().Msg("Configured custom publisher")
+		log.Debug().Msg("configured custom publisher")
 		return nil
 	}
 }
@@ -79,7 +79,7 @@ func WithSendgrid(apiKey string) Options {
 			apiKey: apiKey,
 		}
 		options.sendgrid = &s
-		log.Debug().Msg("Configured SendGrid publisher")
+		log.Debug().Msg("configured SendGrid publisher")
 		return nil
 	}
 }
@@ -105,7 +105,7 @@ func WithSMTP(host string, port int, username string, password string) Options {
 			password: password,
 		}
 		options.smtp = &s
-		log.Debug().Msg("Configured SMTP publisher")
+		log.Debug().Msg("configured SMTP publisher")
 		return nil
 	}
 }
