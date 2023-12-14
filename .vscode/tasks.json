@@ -9,16 +9,16 @@
             "args": [
                 "build",
                 "-o",
-                "${workspaceFolderBasename}",
-                "cmd/main.go"
+                "webhook",
+                "cmd/webhook/main.go"
             ],
             "windows":{
                 "command": "go",
                 "args": [
                     "build",
                     "-o",
-                    "${workspaceFolderBasename}.exe",
-                    "cmd/main.go"
+                    "webhook.exe",
+                    "cmd/webhook/main.go"
                 ]
             },
             "group": {
