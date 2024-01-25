@@ -9,9 +9,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - KU_SMTP_FROM=${KU_SMTP_FROM}
-      - KU_SMTP_TO=${KU_SMTP_TO}
-      - KU_SMTP_SUBJECT=${KU_SMTP_SUBJECT}
+      - KU_EMAIL_FROM=${KU_EMAIL_FROM}
+      - KU_EMAIL_TO=${KU_EMAIL_TO}
+      - KU_EMAIL_SUBJECT=${KU_EMAIL_SUBJECT}
       - KU_SMTP_PORT=${KU_SMTP_PORT:-587}
       - KU_SMTP_HOST=${KU_SMTP_HOST}
       - KU_SMTP_USERNAME=${KU_SMTP_USERNAME}
