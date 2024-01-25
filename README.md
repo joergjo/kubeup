@@ -84,12 +84,18 @@ Once Kubernetes upgrades are published for your AKS cluster, you will receive an
 
 ## Building `kubeup`
 
-Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`.
+Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`. You can also use the included [`Task file`](./Taskfile.yml) instead if you have [Task](https://taskfile.dev) installed.
 
 ```bash
 cd kubeup
+
 go test -v ./...
 go build -o ./webhook ./cmd/webhook/main.go
+
+# Using Task
+task test
+task build
+
 ./webhook --help
 ```
 
@@ -106,11 +112,23 @@ cd kubeup
 # Build a local Docker image
 docker compose build
 
+# Using Task
+task docker:build
+
 # Run a container
 docker compose up -d
 
+# Using Task
+task docker:up
+
+# Tail container logs
+task docker:logs 
+
 # Shut down the container
 docker compose down
+
+# Using Task
+task docker:down 
 ```
 
 You can override the container image's name and tag by exporting the environment variables `IMAGE` and `TAG` or adding them to an [`.env`](https://docs.docker.com/compose/environment-variables/#the-env-file) file.
