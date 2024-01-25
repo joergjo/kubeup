@@ -7,7 +7,7 @@ param aksName string
 @description('Specifies the webhook URL to deliver events to.')
 param webhookUrl string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2023-02-01' existing = {
+resource aks 'Microsoft.ContainerService/managedClusters@2023-10-01' existing = {
   name: aksName
 }
 

@@ -20,7 +20,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   }
 }
 
-resource environment 'Microsoft.App/managedEnvironments@2023-05-01' = {
+resource environment 'Microsoft.App/managedEnvironments@2023-08-01-preview' = {
   name: environmentName
   location: location
   properties: {
@@ -29,17 +29,12 @@ resource environment 'Microsoft.App/managedEnvironments@2023-05-01' = {
       logAnalyticsConfiguration: {
         customerId: logAnalyticsWorkspace.properties.customerId
         sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+        dynamicJsonColumns: true
       }
     }
     vnetConfiguration: {
       infrastructureSubnetId: infrastructureSubnetId
     }
-    workloadProfiles: [
-      {
-        name: 'Consumption'
-        workloadProfileType: 'Consumption'
-      }
-    ]
   }
 }
 
