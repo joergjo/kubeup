@@ -10,12 +10,15 @@ import (
 	sgmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
+// PublisherFunc is a function that publishes a message.
 type PublisherFunc func(m Message) error
 
+// Publisher is a message publisher.
 type Publisher struct {
 	publisherFns []PublisherFunc
 }
 
+// Publish sends a message to all registered publishers.
 func (p *Publisher) Publish(m Message) error {
 	var result error
 	for _, pub := range p.publisherFns {
@@ -26,6 +29,7 @@ func (p *Publisher) Publish(m Message) error {
 	return result
 }
 
+// NewPublisher creates a new Publisher with the given options.
 func NewPublisher(opts ...Options) (*Publisher, error) {
 	var options options
 	var err error

@@ -31,8 +31,10 @@ type emailOptions struct {
 	subject string
 }
 
+// Options represents a functional option for the Publisher.
 type Options func(options *options) error
 
+// WithLogging configures the Publisher to output messages as structured logs.
 func WithLogging() Options {
 	return func(options *options) error {
 		options.log = true
@@ -41,6 +43,8 @@ func WithLogging() Options {
 	}
 }
 
+// WithEmail configures the Publisher to use a specific email recipient.
+// This is required when using SendGrid or SMTP.
 func WithEmail(from, to, subject string) Options {
 	return func(options *options) error {
 		if from == "" {
@@ -59,6 +63,7 @@ func WithEmail(from, to, subject string) Options {
 	}
 }
 
+// WithPublisherFunc configures the Publisher to use a custom PublisherFunc.
 func WithPublisherFunc(fn PublisherFunc) Options {
 	return func(options *options) error {
 		if fn == nil {
@@ -70,6 +75,7 @@ func WithPublisherFunc(fn PublisherFunc) Options {
 	}
 }
 
+// WithSendgrid configures the Publisher to send messages via SendGrid.
 func WithSendgrid(apiKey string) Options {
 	return func(options *options) error {
 		if apiKey == "" {
@@ -84,6 +90,7 @@ func WithSendgrid(apiKey string) Options {
 	}
 }
 
+// WithSMTP configures the Publisher to send messages via SMTP.
 func WithSMTP(host string, port int, username string, password string) Options {
 	return func(options *options) error {
 		if host == "" {

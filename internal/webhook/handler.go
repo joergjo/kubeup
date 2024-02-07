@@ -11,9 +11,11 @@ import (
 )
 
 const (
+	// AzureEventGridOrigin represents the origin string for Azure Event Grid.
 	AzureEventGridOrigin = "eventgrid.azure.net"
 )
 
+// NewCloudEventHandler creates a new CloudEvent handler with the given Publisher.
 func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, error) {
 	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
 		[]string{http.MethodOptions},

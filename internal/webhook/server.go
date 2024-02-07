@@ -12,6 +12,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// New creates a new http.Server with the given handler, port and path.
+// The handler is expected to provide the webhook functionality.
 func New(h http.Handler, port int, path string) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle(path, h)
@@ -29,6 +31,7 @@ func New(h http.Handler, port int, path string) *http.Server {
 	return &s
 }
 
+// Shutdown gracefully shuts down the server when a SIGINT or SIGTERM is received.
 func Shutdown(ctx context.Context, s *http.Server, done chan<- struct{}, timeout time.Duration) {
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
