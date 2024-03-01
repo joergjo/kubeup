@@ -3,31 +3,36 @@ package main
 import (
 	"context"
 	"flag"
+	"log/slog"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/joergjo/go-samples/kubeup/internal/webhook"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"go.uber.org/zap"
+	"go.uber.org/zap/exp/zapslog"
 )
 
 func main() {
-	// Adjust zerlog's configuration so it mirrors the CloudEvents SDK log output
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	zerolog.MessageFieldName = "msg"
-	zerolog.TimestampFieldName = "ts"
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
 	port := flag.Int("port", 8000, "HTTP listen port")
 	path := flag.String("path", "/webhook", "WebHook path")
 	debug := flag.Bool("debug", false, "Enable debug logging")
 	flag.Parse()
 
+	cfg := zap.NewProductionConfig()
+	var hOpts *zapslog.HandlerOptions
 	if *debug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).Level(zerolog.DebugLevel)
+		// if debug is enabled, set the log level to debug and add source location
+		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		hOpts = &zapslog.HandlerOptions{
+			AddSource: true,
+		}
 	}
+	logger := zap.Must(cfg.Build())
+	defer logger.Sync()
+	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts)))
+
 	var opts []webhook.Options = []webhook.Options{
 		webhook.WithLogging(),
 	}
@@ -52,7 +57,7 @@ func main() {
 		"KU_SMTP_PASSWORD"); envVars != nil {
 		port, err := strconv.Atoi(envVars["KU_SMTP_PORT"])
 		if err != nil {
-			log.Fatal().Err(err).Msg("parsing SMTP port")
+			slog.Error("parsing SMTP port", "error", err)
 		}
 		opts = append(
 			opts,
@@ -65,23 +70,28 @@ func main() {
 
 	p, err := webhook.NewPublisher(opts...)
 	if err != nil {
-		log.Fatal().Err(err).Msg("invalid configuration")
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
 	}
 
 	h, err := webhook.NewCloudEventHandler(context.Background(), p)
 	if err != nil {
-		log.Fatal().Err(err).Msg("fatal error creating CloudEvent receiver")
+		slog.Error("fatal error creating CloudEvent receiver", "error", err)
+		os.Exit(1)
 	}
 
-	s := webhook.New(h, *port, *path)
+	s := webhook.NewServer(h, *port, *path)
 	done := make(chan struct{})
 	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
 
-	log.Info().Msgf("starting server on port %d", *port)
-	err = s.ListenAndServe()
-	log.Info().Msgf("waiting for server to shut down")
+	slog.Info("starting server", "port", *port)
+	if err = s.ListenAndServe(); err != http.ErrServerClosed {
+		slog.Error("server has unexpectedly shut down", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("waiting for server to shut down")
 	<-done
-	log.Info().Err(err).Msg("server has shut down")
+	slog.Info("server has shut down")
 }
 
 func getEnvVars(vars ...string) map[string]string {
@@ -91,7 +101,7 @@ func getEnvVars(vars ...string) map[string]string {
 		if !ok {
 			return nil
 		}
-		log.Debug().Msgf("%s=%q", k, v)
+		slog.Debug("using environment variable", "env", k, "value", v)
 		envVars[k] = v
 	}
 	return envVars

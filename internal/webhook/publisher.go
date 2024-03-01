@@ -3,9 +3,9 @@ package webhook
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/go-mail/mail/v2"
-	"github.com/rs/zerolog/log"
 	"github.com/sendgrid/sendgrid-go"
 	sgmail "github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -76,14 +76,14 @@ func newSendGridPublisher(s sendgridOptions, e emailOptions) PublisherFunc {
 		if res.StatusCode < 200 && res.StatusCode >= 300 {
 			return fmt.Errorf("unexpected SendGrid HTTP status code %d, response %q", res.StatusCode, res.Body)
 		}
-		log.Debug().Str("Email", to.Address).Msgf("SendGrid notification successfully sent")
+		slog.Debug("SendGrid notification successfully sent", "email", to.Address)
 		return nil
 	}
 }
 
 func newLogPublisher() PublisherFunc {
 	return func(m Message) error {
-		log.Info().Str("Source", m.Source).Msg(m.PlainText)
+		slog.Info("Kubernetes event", "source", m.Source, "data", m.PlainText)
 		return nil
 	}
 }
@@ -100,7 +100,7 @@ func newSMTPPublisher(s smtpOptions, e emailOptions) PublisherFunc {
 		if err := dialer.DialAndSend(msg); err != nil {
 			return err
 		}
-		log.Debug().Str("Email", e.to).Msgf("SMTP notification successfully sent")
+		slog.Debug("SMTP notification successfully sent", "email", e.to)
 		return nil
 	}
 }

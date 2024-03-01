@@ -3,18 +3,17 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
-// New creates a new http.Server with the given handler, port and path.
+// NewServer creates a new http.Server with the given handler, port and path.
 // The handler is expected to provide the webhook functionality.
-func New(h http.Handler, port int, path string) *http.Server {
+func NewServer(h http.Handler, port int, path string) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle(path, h)
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -36,13 +35,13 @@ func Shutdown(ctx context.Context, s *http.Server, done chan<- struct{}, timeout
 	sigch := make(chan os.Signal, 1)
 	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
 	sig := <-sigch
-	log.Warn().Msgf("received signal %v, shutting down", sig)
+	slog.Warn("received signal, shutting down", "signal", sig.String())
 
 	childCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	if err := s.Shutdown(childCtx); err != nil {
-		log.Error().Err(err).Msg("shutting down server")
+		slog.Error("shutting down server", "error", err)
 	}
 	close(done)
 }

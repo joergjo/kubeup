@@ -2,8 +2,7 @@ package webhook
 
 import (
 	"errors"
-
-	"github.com/rs/zerolog/log"
+	"log/slog"
 )
 
 type options struct {
@@ -38,7 +37,7 @@ type Options func(options *options) error
 func WithLogging() Options {
 	return func(options *options) error {
 		options.log = true
-		log.Debug().Msg("configured log publisher")
+		slog.Debug("configured log publisher")
 		return nil
 	}
 }
@@ -58,7 +57,7 @@ func WithEmail(from, to, subject string) Options {
 		}
 		e := emailOptions{from: from, to: to, subject: subject}
 		options.email = &e
-		log.Debug().Msg("configured email")
+		slog.Debug("configured email")
 		return nil
 	}
 }
@@ -70,7 +69,7 @@ func WithPublisherFunc(fn PublisherFunc) Options {
 			return errors.New("PublisherFunc must not be nil")
 		}
 		options.customPublisher = fn
-		log.Debug().Msg("configured custom publisher")
+		slog.Debug("configured custom publisher")
 		return nil
 	}
 }
@@ -85,7 +84,7 @@ func WithSendgrid(apiKey string) Options {
 			apiKey: apiKey,
 		}
 		options.sendgrid = &s
-		log.Debug().Msg("configured SendGrid publisher")
+		slog.Debug("configured SendGrid publisher")
 		return nil
 	}
 }
@@ -112,7 +111,7 @@ func WithSMTP(host string, port int, username string, password string) Options {
 			password: password,
 		}
 		options.smtp = &s
-		log.Debug().Msg("configured SMTP publisher")
+		slog.Debug("configured SMTP publisher")
 		return nil
 	}
 }

@@ -2,12 +2,12 @@ package webhook
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
-	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -23,12 +23,12 @@ func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, er
 		[]string{AzureEventGridOrigin},
 		true))
 	if err != nil {
-		log.Error().Err(err).Msg("creating protocol settings")
+		slog.Error("creating protocol settings", "error", err)
 		return nil, err
 	}
 	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newEventReceiver(pub))
 	if err != nil {
-		log.Error().Err(err).Msg("creating receiver")
+		slog.Error("creating receiver", "error", err)
 		return nil, err
 	}
 
@@ -37,7 +37,7 @@ func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, er
 
 func newEventReceiver(p *Publisher) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
-		log.Info().Msgf("received event with id %q", e.ID())
+		slog.Info("received event", "id", e.ID())
 		switch e.Type() {
 		case EventNewKubernetesVersionAvailable:
 			return publishEvent[ContainerServiceNewKubernetesVersionAvailableEvent](e, p, "new-kubernetes-version.gohtml")
@@ -52,7 +52,7 @@ func newEventReceiver(p *Publisher) func(context.Context, cloudevents.Event) pro
 		case EventNodePoolRollingFailed:
 			return publishEvent[ContainerServiceNodePoolRollingFailedEvent](e, p, "nodepool-rolling-failed.gohtml")
 		default:
-			log.Warn().Msgf("received unexpected CloudEvent of type %q", e.Type())
+			slog.Warn("received unexpected CloudEvent type", "type", e.Type())
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", e.Type())
 		}
 	}
@@ -61,17 +61,17 @@ func newEventReceiver(p *Publisher) func(context.Context, cloudevents.Event) pro
 func publishEvent[T ContainerServiceEvent](e cloudevents.Event, p *Publisher, filename string) protocol.Result {
 	ce, err := unmarshal[T](e)
 	if err != nil {
-		log.Error().Err(err).Msgf("deserialize %s", e.Type())
+		slog.Error("deserializing event", "error", err, "type", e.Type())
 		return cloudevents.NewHTTPResult(http.StatusBadRequest, "invalid %s data", e.Type())
 	}
 	mb := NewMessageBuilder[T](filename)
 	msg, err := mb.Build(ce, e.Source())
 	if err != nil {
-		log.Error().Err(err).Msg("building message")
+		slog.Error("building message", "error", err)
 		return cloudevents.NewHTTPResult(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 	if err := p.Publish(msg); err != nil {
-		log.Error().Err(err).Msg("publishing event")
+		slog.Error("publishing message", "error", err)
 	}
 	return cloudevents.NewHTTPResult(http.StatusOK, "")
 }
