@@ -3,7 +3,7 @@ module github.com/joergjo/go-samples/kubeup
 go 1.21
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.15.1
+	github.com/cloudevents/sdk-go/v2 v2.15.2
 	github.com/go-mail/mail/v2 v2.3.0
 	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
 	go.uber.org/zap v1.27.0
