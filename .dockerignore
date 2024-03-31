@@ -10,3 +10,5 @@
 **/deploy
 LICENSE
 README.md
+Taskfile*
+.goreleaser.yaml
