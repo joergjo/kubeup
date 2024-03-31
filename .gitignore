@@ -1,3 +1,6 @@
 webhook
+kubeup
 !internal/webhook
 !cmd/webhook
+dist/
+*.exe

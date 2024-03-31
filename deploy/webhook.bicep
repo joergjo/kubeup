@@ -9,6 +9,14 @@ param appName string = 'kubeup'
 @description('Specifies the Container App\'s image.')
 param image string
 
+@description('Specifies the primary client secret.')
+@secure()
+param secret1 string
+
+@description('Specifies the secondary client secret.')
+@secure()
+param secret2 string
+
 @description('Specifies the notification\'s email From address.')
 param emailFrom string
 
@@ -62,6 +70,8 @@ module app 'modules/app.bicep' = {
     location: location
     environmentId: environment.outputs.environmentId
     image: image
+    secret1: secret1
+    secret2: secret2
     emailFrom: emailFrom
     emailTo: emailTo
     emailSubject: emailSubject

@@ -10,6 +10,14 @@ param environmentId string
 @description('Specifies the container image.')
 param image string
 
+@description('Specifies the primary client secret.')
+@secure()
+param secret1 string
+
+@description('Specifies the secondary client secret.')
+@secure()
+param secret2 string
+
 @description('Specifies the notification\'s email From address.')
 param emailFrom string
 
@@ -52,6 +60,14 @@ var allSecrets = [
     name: 'smtp-password'
     value: smtpPassword
   }
+  {
+    name: 'secret-1'
+    value: secret1
+  }
+  {
+    name: 'secret-2'
+    value: secret2
+  }
 ]
 
 var secrets = filter(allSecrets, s => !empty(s.value))
@@ -88,6 +104,14 @@ var allEnvVars = [
   {
     name: 'KU_SMTP_PASSWORD'
     secretRef: 'smtp-password'
+  }
+  {
+    name: 'KU_SECRET_1'
+    secretRef: 'secret-1'
+  }
+  {
+    name: 'KU_SECRET_2'
+    secretRef: 'secret-2'
   }
 ]
 

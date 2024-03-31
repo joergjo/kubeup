@@ -18,13 +18,13 @@ RUN go mod download
 
 # Copy our source code over and build the binary
 COPY . .
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags '-s -w' -o webhook ./cmd/webhook/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags '-s -w' -o kubeup ./cmd/webhook/main.go
 
 FROM scratch AS final
 EXPOSE 8000
 
 # Copy over the binary artifact
-COPY --from=builder /build/webhook /
+COPY --from=builder /build/kubeup /
 
 # Copy configuration from builder
 COPY --from=builder /etc/nsswitch.conf.min /etc/nsswitch.conf
@@ -33,4 +33,4 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 USER nobody
 
-ENTRYPOINT ["/webhook"]
+ENTRYPOINT ["/kubeup"]

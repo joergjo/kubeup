@@ -14,6 +14,13 @@ import (
 	"go.uber.org/zap/exp/zapslog"
 )
 
+var (
+	version string
+	commit  string
+	date    string
+	builtBy string
+)
+
 func main() {
 	port := flag.Int("port", 8000, "HTTP listen port")
 	path := flag.String("path", "/webhook", "WebHook path")
@@ -80,10 +87,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := webhook.NewServer(h, *port, *path)
+	sec1 := os.Getenv("KU_SECRET_1")
+	sec2 := os.Getenv("KU_SECRET_2")
+	if sec1 == "" || sec2 == "" {
+		slog.Warn("no client secret configured, webhook will be unprotected")
+	}
+	srvOpts := webhook.ServerOptions{
+		Path:    *path,
+		Port:    *port,
+		Secret1: sec1,
+		Secret2: sec2,
+	}
+	s := webhook.NewServer(h, srvOpts)
 	done := make(chan struct{})
 	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
 
+	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
 	slog.Info("starting server", "port", *port)
 	if err = s.ListenAndServe(); err != http.ErrServerClosed {
 		slog.Error("server has unexpectedly shut down", "error", err)

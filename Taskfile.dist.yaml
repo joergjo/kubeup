@@ -9,8 +9,15 @@ tasks:
   build:
     desc: Builds the application binary
     cmds:
-      - go build -o webhook cmd/webhook/main.go
-      
+      - go build -ldflags "-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}} -X main.builtBy=go" -o kubeup cmd/webhook/main.go
+    vars:
+      VERSION: 
+        sh: echo "0.0.0-SNAPSHOT-$(git rev-parse --short HEAD)"
+      COMMIT: 
+        sh: git rev-parse HEAD
+      DATE: 
+        sh: date -u +%Y-%m-%dT%H:%M:%SZ
+
   test:
     desc: Runs the tests
     cmds:

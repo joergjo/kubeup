@@ -25,6 +25,7 @@ fqdn=$(az deployment group create \
     emailTo="$KU_EMAIL_TO" emailSubject="$KU_EMAIL_SUBJECT" \
     smtpHost="$KU_SMTP_HOST" smtpPort="$KU_SMTP_PORT" \
     smtpUsername="$KU_SMTP_USERNAME" smtpPassword="$KU_SMTP_PASSWORD" \
+    secret1="$KU_SECRET_1" secret2="$KU_SECRET_2" \
   --query properties.outputs.fqdn.value \
   --output tsv)
 
@@ -40,13 +41,19 @@ if [[ -z "$KU_AKS_CLUSTER" || -z "$KU_AKS_RESOURCE_GROUP" ]]; then
     exit 0
 fi
 
+webhook_url="https://$fqdn/webhook"
+
+if [[ ! -z "$KU_SECRET_1" && ! -z "$KU_SECRET_2" ]]; then
+    webhook_url="$webhook_url?secret=$KU_SECRET_1"
+fi
+
 az deployment group create \
   --resource-group "$KU_AKS_RESOURCE_GROUP" \
   --name "kubeup-eventgrid-$timestamp" \
   --template-file eventgrid.bicep \
   --parameters aksName="$KU_AKS_CLUSTER" \
     eventSubscriptionName="kubeup" \
-    webhookUrl="https://$fqdn/webhook" \
+    webhookUrl="$webhook_url" \
   --output none
 
 echo "Event Grid topic has been created successfully."
