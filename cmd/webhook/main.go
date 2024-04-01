@@ -40,43 +40,11 @@ func main() {
 	defer logger.Sync()
 	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts)))
 	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
-
-	var opts []webhook.Options = []webhook.Options{
-		webhook.WithLogging(),
-	}
-	if envVars := getEnvVars("KU_EMAIL_FROM",
-		"KU_EMAIL_TO",
-		"KU_EMAIL_SUBJECT"); envVars != nil {
-		opts = append(
-			opts,
-			webhook.WithEmail(
-				envVars["KU_EMAIL_FROM"],
-				envVars["KU_EMAIL_TO"],
-				envVars["KU_EMAIL_SUBJECT"]))
-	}
-	if envVars := getEnvVars("KU_SENDGRID_APIKEY"); envVars != nil {
-		opts = append(
-			opts,
-			webhook.WithSendgrid(envVars["KU_SENDGRID_APIKEY"]))
-	}
-	if envVars := getEnvVars("KU_SMTP_HOST",
-		"KU_SMTP_PORT",
-		"KU_SMTP_USERNAME",
-		"KU_SMTP_PASSWORD"); envVars != nil {
-		port, err := strconv.Atoi(envVars["KU_SMTP_PORT"])
-		if err != nil {
-			slog.Error("parsing SMTP port", "error", err)
-		}
-		opts = append(
-			opts,
-			webhook.WithSMTP(
-				envVars["KU_SMTP_HOST"],
-				port,
-				envVars["KU_SMTP_USERNAME"],
-				envVars["KU_SMTP_PASSWORD"]))
+	if *debug {
+		slog.Warn("debug logging enabled, secrets will be written to stderr")
 	}
 
-	p, err := webhook.NewPublisher(opts...)
+	p, err := webhook.NewPublisher(publisherOptions()...)
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
@@ -88,17 +56,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	sec1 := os.Getenv("KU_SECRET_1")
-	sec2 := os.Getenv("KU_SECRET_2")
-	if sec1 == "" || sec2 == "" {
+	srvOpts := webhook.ServerOptions{
+		Path: *path,
+		Port: *port,
+	}
+	secEnv := getRequiredEnv("KU_SECRET_1", "KU_SECRET_2")
+	switch {
+	case secEnv != nil:
+		srvOpts.Secret1 = secEnv["KU_SECRET_1"]
+		srvOpts.Secret2 = secEnv["KU_SECRET_2"]
+		slog.Info("protecting webhook with client secret")
+	default:
 		slog.Warn("no client secret configured, webhook will be unprotected")
 	}
-	srvOpts := webhook.ServerOptions{
-		Path:    *path,
-		Port:    *port,
-		Secret1: sec1,
-		Secret2: sec2,
-	}
+
 	s := webhook.NewServer(h, srvOpts)
 	done := make(chan struct{})
 	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
@@ -113,7 +84,7 @@ func main() {
 	slog.Info("server has shut down")
 }
 
-func getEnvVars(vars ...string) map[string]string {
+func getRequiredEnv(vars ...string) map[string]string {
 	envVars := make(map[string]string, 4)
 	for _, k := range vars {
 		v, ok := os.LookupEnv(k)
@@ -124,4 +95,30 @@ func getEnvVars(vars ...string) map[string]string {
 		envVars[k] = v
 	}
 	return envVars
+}
+
+func publisherOptions() []webhook.Options {
+	opts := []webhook.Options{
+		webhook.WithLogging(),
+	}
+	if mailEnv := getRequiredEnv("KU_EMAIL_FROM", "KU_EMAIL_TO", "KU_EMAIL_SUBJECT"); mailEnv != nil {
+		opts = append(
+			opts,
+			webhook.WithEmail(mailEnv["KU_EMAIL_FROM"], mailEnv["KU_EMAIL_TO"], mailEnv["KU_EMAIL_SUBJECT"]))
+	}
+	if sgEnv := getRequiredEnv("KU_SENDGRID_APIKEY"); sgEnv != nil {
+		opts = append(opts, webhook.WithSendgrid(sgEnv["KU_SENDGRID_APIKEY"]))
+	}
+	if smtpEnv := getRequiredEnv("KU_SMTP_HOST", "KU_SMTP_PORT", "KU_SMTP_USERNAME", "KU_SMTP_PASSWORD"); smtpEnv != nil {
+		port, err := strconv.Atoi(smtpEnv["KU_SMTP_PORT"])
+		if err != nil {
+			// We just log the parsing error and continue.
+			// webhook.WithSMTP will return an error if the port is 0.
+			slog.Error("parsing SMTP port", "error", err)
+		}
+		opts = append(
+			opts,
+			webhook.WithSMTP(smtpEnv["KU_SMTP_HOST"], port, smtpEnv["KU_SMTP_USERNAME"], smtpEnv["KU_SMTP_PASSWORD"]))
+	}
+	return opts
 }
