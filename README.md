@@ -1,6 +1,6 @@
 # kubeup
 
-`kubeup` is a sample webhook written in [Go](https://go.dev) to process Azure Kubernetes Service (AKS) [CloudEvents](https://cloudevents.io) that notify receivers of new Kubernetes versions being available in AKS. Refer to [Quickstart: Subscribe to Azure Kubernetes Service (AKS) events with Azure Event Grid](https://docs.microsoft.com/en-us/azure/aks/quickstart-event-grid) and [Webhook event delivery](https://docs.microsoft.com/en-us/azure/event-grid/webhook-event-delivery) if you want to learn more about the underlying concepts.
+`kubeup` is a webhook written in [Go](https://go.dev) to process Azure Kubernetes Service (AKS) [CloudEvents](https://cloudevents.io) that notify receivers of version and upgrade events that an Azure Kubernetes Service cluster emits. Refer to [Quickstart: Subscribe to Azure Kubernetes Service (AKS) events with Azure Event Grid](https://docs.microsoft.com/en-us/azure/aks/quickstart-event-grid) and [Webhook event delivery](https://docs.microsoft.com/en-us/azure/event-grid/webhook-event-delivery) if you want to learn more about the underlying concepts.
 
 Events received by `kubeup` are handled internally by a `Publisher`, which is a struct that holds a slice of `PublisherFunc` functions. `kubeup` provides various `PublisherFunc` implementations to handle these events:
 
@@ -9,11 +9,12 @@ Events received by `kubeup` are handled internally by a `Publisher`, which is a 
 - Send an email using the [Twilio SendGrid](https://sendgrid.com) API.
 - Provide your own `PublisherFunc`.
 
-`kubeup` does _not_ implement any authorization (yet). For a production grade implemetation, you must [secure your webhook endpoint with Azure AD](https://docs.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery).
+`kubeup` supports passing a [client secret as query parameter](https://learn.microsoft.com/en-us/azure/event-grid/security-authentication#using-client-secret-as-a-query-parameter) to verify requests are sent by Azure Event Grid. When using client secrets, you have to specify
+two secrets. These can be used interchangeably, so you can roll over one secret at a time.   
 
 Since Azure Event Grid delivers events only to public endpoints, you must either run `kubeup` on an Azure service that allows you to expose a public endpoint (App Service, Container App, AKS, VMs, etc.), or use a reverse proxy service like [ngrok](https://ngrok.com) to route events to a local endpoint. 
 
-This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app).
+This repo includes Bicep templates to deploy `kubeup` as an [Azure Container App](https://docs.microsoft.com/en-us/azure/container-apps/overview), including [HTTP scaling rules to scale to zero](https://docs.microsoft.com/en-us/azure/container-apps/scale-app). This ensures that running `kubeup` can be run with minimal costs.
 
 ## Quickstart
 
@@ -55,8 +56,7 @@ cd kubeup/deploy
 ```
 
 All resources are created in the same region. You can override the default settings
-of the deployment script by exporting the following environment variables. Note that all
-environment variables with no default value are required.
+of the deployment script by exporting the following environment variables. 
 
 | Environment variable     | Purpose                                | Default value           |
 | ------------------------ | ---------------------------------------| ----------------------- |
@@ -70,21 +70,27 @@ environment variables with no default value are required.
 | `KU_EMAIL_SUBJECT`       | Email subject                          | none                    |
 | `KU_SENDGRID_APIKEY`     | Twilio SendGrid API key                | none                    |
 | `KU_SMTP_HOST`           | SMTP hostname                          | none                    |
-| `KU_SMTP_PORT`           | SMTP port                              | `587`                    |
+| `KU_SMTP_PORT`           | SMTP port                              | `587`                   |
 | `KU_SMTP_USERNAME`       | SMTP username                          | none                    |
 | `KU_SMTP_PASSWORD`       | SMTP password                          | none                    |
-| `KU_SMTP_FROM`           | SMTP sender email address              | none                    |
-| `KU_SMTP_TO`             | SMTP receiver email address            | none                    |
-| `KU_SMTP_SUBJECT`        | SMTP email subject                     | none                    |
+| `KU_SECRET_1`            | First client secret                    | none                    |
+| `KU_SECRET_2`            | Second client secret                   | none                    |
+
+To send email notifications, you must specify 
+- `KU_EMAIL_FROM`, `KU_EMAIL_TO`, `KU_EMAIL_SUBJECT` and 
+- either `KU_SENDGRID_APIKEY`
+- or `KU_SMTP_HOST`, `KU_SMTP_USERNAME`, `KU_SMTP_PASSWORD`, and `KU_SMTP_PORT`(if your SMTP server uses a different port than 587)  
+
+You can also configure `kubeup` to use SMTP _and_ SendGrid publishing by setting all aforementioned environment variables. 
 
 If you do not set `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`, the script will only deploy
 the `kubeup` webhook. You can rerun the deployment script later again with `KU_AKS_CLUSTER` and `KU_AKS_RESOURCE_GROUP`set to complete the deployment.
 
-Once Kubernetes upgrades are published for your AKS cluster, you will receive an email (if configured) and find a log entry in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
+Once Kubernetes events are published for your AKS cluster, you will receive an email (if configured) and find a log entry in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
 
 ## Building `kubeup`
 
-Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`. You can also use the included [`Task file`](./Taskfile.yml) instead if you have [Task](https://taskfile.dev) installed.
+Building `kubeup` requires [Go 1.21 or later](https://go.dev/dl/) on Windows, macOS or Linux. The command line examples shown below use bash syntax, but the commands also work in PowerShell or CMD on Windows by substituting `/` with `\`. You can also use the included [`Taskfile`](./Taskfile.dist.yaml) instead if you have [Task](https://taskfile.dev) installed.
 
 ```bash
 cd kubeup
