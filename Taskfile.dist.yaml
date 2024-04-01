@@ -1,22 +1,23 @@
 version: '3'
 
+vars:
+  VERSION: 
+    sh: echo "0.0.0-SNAPSHOT-$(git rev-parse --short HEAD)"
+  COMMIT: 
+    sh: git rev-parse HEAD
+  DATE: 
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+
 tasks:
   run:
     desc: Runs the application
     cmds:
-      - go run cmd/webhook/main.go -debug
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} go run cmd/webhook/main.go -debug
 
   build:
     desc: Builds the application binary
     cmds:
       - go build -ldflags "-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}} -X main.builtBy=go" -o kubeup cmd/webhook/main.go
-    vars:
-      VERSION: 
-        sh: echo "0.0.0-SNAPSHOT-$(git rev-parse --short HEAD)"
-      COMMIT: 
-        sh: git rev-parse HEAD
-      DATE: 
-        sh: date -u +%Y-%m-%dT%H:%M:%SZ
 
   test:
     desc: Runs the tests
@@ -26,13 +27,13 @@ tasks:
   docker:build:
     desc: Builds the application's Docker image
     cmds:
-      - docker compose build  
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose build 
 
   docker:up:
     desc: Runs the application in Docker
     cmds:
-      - docker compose up -d
-  
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose up -d 
+
   docker:down:
     desc: Shuts down the application running in Docker 
     cmds:

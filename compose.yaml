@@ -6,6 +6,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        COMMIT: ${COMMIT}
+        VERSION: ${VERSION}
+        DATE: ${DATE}
     ports:
       - "8000:8000"
     environment:

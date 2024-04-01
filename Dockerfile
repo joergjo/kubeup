@@ -1,5 +1,5 @@
 FROM --platform=$BUILDPLATFORM golang:1.21 AS builder
-ARG TARGETOS TARGETARCH
+ARG TARGETOS TARGETARCH VERSION COMMIT DATE
 WORKDIR /build
 
 # Enable Go's DNS resolver to read from /etc/hosts
@@ -18,7 +18,7 @@ RUN go mod download
 
 # Copy our source code over and build the binary
 COPY . .
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags '-s -w' -o kubeup ./cmd/webhook/main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -ldflags "-s -w -X main.version=$VERSION -X main.commit=$COMMIT -X main.date=$DATE -X main.builtBy=go" -o kubeup cmd/webhook/main.go
 
 FROM scratch AS final
 EXPOSE 8000
