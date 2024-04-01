@@ -1,0 +1,23 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Builds the application's Docker image
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose build 
+
+  up:
+    desc: Runs the application in Docker
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} docker compose up -d 
+
+  down:
+    desc: Shuts down the application running in Docker 
+    cmds:
+      - docker compose down
+  
+  logs:
+    desc: Streams all containers stdout/stderr (blocks, CTRL+C to exit)
+    cmds:
+      - docker compose logs --follow 
+    ignore_error: true

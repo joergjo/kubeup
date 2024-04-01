@@ -4,3 +4,5 @@ kubeup
 !cmd/webhook
 dist/
 *.exe
+[Tt]askfile.yml
+[Tt]askfile.yaml

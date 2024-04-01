@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  run:
+    desc: Runs the application
+    cmds:
+      - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} go run cmd/webhook/main.go -debug
+
+  build:
+    desc: Builds the application binary
+    cmds:
+      - go build -ldflags "-s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}} -X main.builtBy=go" -o kubeup cmd/webhook/main.go
+
+  test:
+    desc: Runs the tests
+    cmds:
+      - go test -v ./...
