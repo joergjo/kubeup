@@ -39,6 +39,7 @@ func main() {
 	logger := zap.Must(cfg.Build())
 	defer logger.Sync()
 	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts)))
+	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
 
 	var opts []webhook.Options = []webhook.Options{
 		webhook.WithLogging(),
@@ -102,7 +103,6 @@ func main() {
 	done := make(chan struct{})
 	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
 
-	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
 	slog.Info("starting server", "port", *port)
 	if err = s.ListenAndServe(); err != http.ErrServerClosed {
 		slog.Error("server has unexpectedly shut down", "error", err)
