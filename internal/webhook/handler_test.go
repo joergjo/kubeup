@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/joergjo/go-samples/kubeup/internal/webhook"
+	"github.com/joergjo/kubeup/internal/webhook"
 )
 
 func TestValidation(t *testing.T) {

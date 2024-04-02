@@ -1,8 +1,43 @@
-webhook
-kubeup
-!internal/webhook
-!cmd/webhook
-dist/
+# Created by https://www.gitignore.io/api/go
+# Edit at https://www.gitignore.io/?templates=go
+
+### Go ###
+# Binaries for programs and plugins
 *.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+### Go Patch ###
+/vendor/
+/Godeps/
+
+# End of https://www.gitignore.io/api/go
+
+**/debug
+__debug_bin
+.env
+.envrc
+
+# macOS Finder
+.DS_Store
+
+# GoReleaser
+dist/
+
+# Taskfile (overrides)
 [Tt]askfile.yml
 [Tt]askfile.yaml
+
+# Project specific paths
+kubeup
+webhook
+!internal/webhook
+!cmd/webhook

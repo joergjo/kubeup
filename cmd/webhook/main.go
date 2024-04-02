@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/joergjo/go-samples/kubeup/internal/webhook"
+	"github.com/joergjo/kubeup/internal/webhook"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )

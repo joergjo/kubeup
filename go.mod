@@ -1,4 +1,4 @@
-module github.com/joergjo/go-samples/kubeup
+module github.com/joergjo/kubeup
 
 go 1.21
 

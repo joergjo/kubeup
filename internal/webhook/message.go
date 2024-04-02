@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/joergjo/go-samples/kubeup/internal/templates"
+	"github.com/joergjo/kubeup/internal/templates"
 )
 
 // Message represents a message.

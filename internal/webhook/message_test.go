@@ -3,7 +3,7 @@ package webhook_test
 import (
 	"testing"
 
-	"github.com/joergjo/go-samples/kubeup/internal/webhook"
+	"github.com/joergjo/kubeup/internal/webhook"
 )
 
 func TestNewKubernetesVersionTemplate(t *testing.T) {
