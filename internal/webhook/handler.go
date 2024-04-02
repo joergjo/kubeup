@@ -72,6 +72,7 @@ func publishEvent[T ContainerServiceEvent](e cloudevents.Event, p *Publisher, fi
 	}
 	if err := p.Publish(msg); err != nil {
 		slog.Error("publishing message", "error", err)
+		return cloudevents.NewHTTPResult(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 	}
 	return cloudevents.NewHTTPResult(http.StatusOK, "")
 }
