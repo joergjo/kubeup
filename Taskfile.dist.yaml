@@ -11,3 +11,11 @@ vars:
     sh: git rev-parse HEAD
   DATE: 
     sh: date -u +%Y-%m-%dT%H:%M:%SZ
+
+tasks:
+  deploy:
+    desc: Deploy the application as Azure Container App
+    cmds:
+      - ./deploy.sh
+    dir: ./deploy
+    dotenv: ['.env']
