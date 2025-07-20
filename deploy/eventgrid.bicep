@@ -1,24 +1,34 @@
-@description('Specifies the Event Grid subscription name.')
-param eventSubscriptionName string
-
 @description('Specifies the AKS cluster name.')
 param aksName string
 
 @description('Specifies the webhook URL to deliver events to.')
+@secure()
 param webhookUrl string
 
-resource aks 'Microsoft.ContainerService/managedClusters@2023-10-01' existing = {
+@description('Specifies the webhook\'s Entra ID application ID or URI.')
+param appId string
+
+var enableEntraId = appId != '' 
+
+resource aks 'Microsoft.ContainerService/managedClusters@2025-03-01' existing = {
   name: aksName
 }
 
-resource eventSubscription 'Microsoft.EventGrid/eventSubscriptions@2022-06-15' = {
-  name: eventSubscriptionName
+resource eventSubscription 'Microsoft.EventGrid/eventSubscriptions@2025-02-15' = {
+  name: 'kubeup-${uniqueString(webhookUrl, resourceGroup().id)}'
   scope: aks
   properties: {
     destination: {
       endpointType: 'WebHook'
-      properties: {
+      properties: enableEntraId ? {
         endpointUrl: webhookUrl
+        minimumTlsVersionAllowed: '1.2'
+        azureActiveDirectoryApplicationIdOrUri: appId
+#disable-next-line use-resource-id-functions
+        azureActiveDirectoryTenantId: tenant().tenantId
+      } : {
+        endpointUrl: webhookUrl
+        minimumTlsVersionAllowed: '1.2'
       }
     }
     eventDeliverySchema: 'CloudEventSchemaV1_0'

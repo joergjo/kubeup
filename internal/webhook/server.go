@@ -1,80 +1,52 @@
 package webhook
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 )
 
-const (
-	secP = "secret"
-)
-
-type ServerOptions struct {
-	Path    string
-	Port    int
-	Secret1 string
-	Secret2 string
-}
-
 // NewServer creates a new http.Server with the given handler, port and path.
 // The handler is expected to provide the webhook functionality.
-func NewServer(h http.Handler, opts ServerOptions) *http.Server {
+func NewServer(handler http.Handler, opts ...Options) (*http.Server, error) {
+	var options options
+	var err error
+	for _, opt := range opts {
+		if err = opt(&options); err != nil {
+			return nil, fmt.Errorf("invalid options: %w", err)
+
+		}
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle(opts.Path, protectWithClientSecret(h, opts.Secret1, opts.Secret2))
+	switch {
+	case options.entraID != nil:
+		v, err := newValidator(options.entraID.issuerURL, options.entraID.appID)
+		if err != nil {
+			return nil, fmt.Errorf("creating JWT validator: %w", err)
+		}
+		mw := newEntraIDMiddleware(v)
+		mux.Handle(options.path, mw(handler))
+		slog.Info("using EntraID middleware")
+	case options.clientSecret != nil:
+		mw := newClientSecretMiddleware(options.clientSecret.secret1, options.clientSecret.secret2)
+		mux.Handle(options.path, mw(handler))
+		slog.Info("using client secret middleware")
+	default:
+		mux.Handle(options.path, handler)
+		slog.Warn("no authorization middleware configured, webhook is unprotected")
+	}
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 	s := http.Server{
-		Addr:         fmt.Sprintf(":%d", opts.Port),
+		Addr:         fmt.Sprintf(":%d", options.port),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 		Handler:      mux,
 	}
-	return &s
-}
-
-// Shutdown gracefully shuts down the server when a SIGINT or SIGTERM is received.
-func Shutdown(ctx context.Context, s *http.Server, done chan<- struct{}, timeout time.Duration) {
-	sigch := make(chan os.Signal, 1)
-	signal.Notify(sigch, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigch
-	slog.Warn("received signal, shutting down", "signal", sig.String())
-
-	childCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	if err := s.Shutdown(childCtx); err != nil {
-		slog.Error("shutting down server", "error", err)
-	}
-	close(done)
-}
-
-// TODO: add test
-func newClientSecretMiddleware(sec1, sec2 string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			secret := r.URL.Query().Get(secP)
-			if secret != sec1 && secret != sec2 {
-				slog.Warn("received request with invalid secret")
-				http.Error(w, "invalid secret", http.StatusUnauthorized)
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func protectWithClientSecret(h http.Handler, sec1, sec2 string) http.Handler {
-	if sec1 == "" || sec2 == "" {
-		return h
-	}
-	return newClientSecretMiddleware(sec1, sec2)(h)
+	return &s, nil
 }

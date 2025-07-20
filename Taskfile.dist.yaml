@@ -6,16 +6,49 @@ includes:
 
 vars:
   VERSION: 
-    sh: echo "0.0.0-SNAPSHOT-$(git rev-parse --short HEAD)"
+    sh: echo "$(git rev-parse --short HEAD)-dev"
   COMMIT: 
     sh: git rev-parse HEAD
   DATE: 
     sh: date -u +%Y-%m-%dT%H:%M:%SZ
 
 tasks:
-  deploy:
-    desc: Deploy the application as Azure Container App
+  default:
+    desc: Default task to run the application
     cmds:
-      - ./deploy.sh
+      - task: go:run
+
+  deploy:entraid:
+    desc: Set up Entra ID application and service principals for kubeup
+    cmds:
+      - ./entraid.sh
     dir: ./deploy
-    dotenv: ['.env']
+
+  deploy:azure:
+    desc: Deploy kubeup as Azure Container App
+    cmds:
+      - ./azure.sh
+    dir: ./deploy
+    dotenv:  
+      - '../.env' 
+      - '../.env.entraid'
+
+  deploy:all:
+    desc: Set up Entra ID and deploy kubeup
+    cmds:
+      - task: deploy:entraid
+      - task: deploy:azure
+
+  deploy:down:
+    desc: Delete kubeup from Azure
+    cmds:
+      - az group delete --name kubeup --resource-group $KU_RESOURCE_GROUP --no-wait --yes
+    dotenv:  
+      - '.env' 
+
+  deploy:clean:
+    desc: Clean up local deployment files
+    cmds:
+      - rm ./.env.entraid ./deploy/entraid.log
+    ignore_error: true
+

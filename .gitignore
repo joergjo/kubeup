@@ -21,11 +21,6 @@
 
 # End of https://www.gitignore.io/api/go
 
-**/debug
-__debug_bin
-.env
-.envrc
-
 # macOS Finder
 .DS_Store
 
@@ -41,3 +36,6 @@ kubeup
 webhook
 !internal/webhook
 !cmd/webhook
+.env*
+!.env.template
+*.log

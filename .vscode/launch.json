@@ -5,21 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch executable",
+            "name": "Launch Package",
             "type": "go",
             "request": "launch",
-            "mode": "exec",
-            "program": "${workspaceFolder}/${workspaceFolderBasename}",
-            "windows": {
-                "name": "Launch executable",
-                "type": "go",
-                "request": "launch",
-                "program": "${workspaceFolder}/${workspaceFolderBasename}.exe",
-            },
-            "env": {
-            },
-            "envFile": "${workspaceFolder}/.env",
-            "args": []
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/webhook",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

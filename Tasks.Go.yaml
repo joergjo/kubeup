@@ -5,6 +5,8 @@ tasks:
     desc: Runs the application
     cmds:
       - VERSION={{.VERSION}} COMMIT={{.COMMIT}} DATE={{.DATE}} go run cmd/webhook/main.go -debug
+    dotenv:  
+      - '.env' 
 
   build:
     desc: Builds the application binary
@@ -14,4 +16,10 @@ tasks:
   test:
     desc: Runs the tests
     cmds:
-      - go test -v ./...
+      - go test -v -shuffle=on ./...
+
+  tidy:
+    desc: Format code and tidy go.mod
+    cmds:
+      - go fmt ./...
+      - go mod tidy -v

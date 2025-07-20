@@ -4,28 +4,27 @@ if [[ -z "$KU_RESOURCE_GROUP" ]]; then
     exit 1
 fi
 
-resource_group=$KU_RESOURCE_GROUP
 location=${KU_LOCATION:-westeurope}
 image=${KU_IMAGE:-joergjo/kubeup:latest}
 timestamp=$(date +%s)
 
-echo "Using resource group $resource_group in $location."
+echo "Using resource group $KU_RESOURCE_GROUP in $location."
 
 az group create \
-  --resource-group "$resource_group" \
+  --resource-group "$KU_RESOURCE_GROUP" \
   --location "$location" \
   --output none
 
 fqdn=$(az deployment group create \
-  --resource-group "$resource_group" \
+  --resource-group "$KU_RESOURCE_GROUP" \
   --name "kubeup-webhook-$timestamp" \
   --template-file webhook.bicep \
-  --parameters location="$location" image="$image" appName="kubeup" \
+  --parameters location="$location" image="$image" \
     sendGridApiKey="$KU_SENDGRID_APIKEY" emailFrom="$KU_EMAIL_FROM" \
     emailTo="$KU_EMAIL_TO" emailSubject="$KU_EMAIL_SUBJECT" \
     smtpHost="$KU_SMTP_HOST" smtpPort="$KU_SMTP_PORT" \
     smtpUsername="$KU_SMTP_USERNAME" smtpPassword="$KU_SMTP_PASSWORD" \
-    secret1="$KU_SECRET_1" secret2="$KU_SECRET_2" \
+    secret1="$KU_SECRET_1" secret2="$KU_SECRET_2" appId="$KU_APP_ID" \
   --query properties.outputs.fqdn.value \
   --output tsv)
 
@@ -44,7 +43,7 @@ fi
 webhook_url="https://$fqdn/webhook"
 
 if [[ ! -z "$KU_SECRET_1" && ! -z "$KU_SECRET_2" ]]; then
-    webhook_url="$webhook_url?secret=$KU_SECRET_1"
+    webhook_url="$webhook_url?access_token=$KU_SECRET_1"
 fi
 
 az deployment group create \
@@ -52,8 +51,7 @@ az deployment group create \
   --name "kubeup-eventgrid-$timestamp" \
   --template-file eventgrid.bicep \
   --parameters aksName="$KU_AKS_CLUSTER" \
-    eventSubscriptionName="kubeup" \
-    webhookUrl="$webhook_url" \
+    webhookUrl="$webhook_url" appId="$KU_APP_ID" \
   --output none
 
 echo "Event Grid topic has been created successfully."

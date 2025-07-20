@@ -6,13 +6,55 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strconv"
+	"os/signal"
+	"runtime"
+	"syscall"
 	"time"
 
+	"github.com/caarlos0/env/v11"
+	"github.com/joergjo/kubeup/internal/event"
 	"github.com/joergjo/kubeup/internal/webhook"
 	"go.uber.org/zap"
 	"go.uber.org/zap/exp/zapslog"
 )
+
+type config struct {
+	Port           int    `env:"KU_PORT" envDefault:"8000"`
+	Path           string `env:"KU_PATH" envDefault:"/webhook"`
+	Debug          bool   `env:"KU_DEBUG" envDefault:"false"`
+	EmailFrom      string `env:"KU_EMAIL_FROM"`
+	EmailTo        string `env:"KU_EMAIL_TO"`
+	EmailSubject   string `env:"KU_EMAIL_SUBJECT"`
+	SMTPHost       string `env:"KU_SMTP_HOST"`
+	SMTPPort       int    `env:"KU_SMTP_PORT" envDefault:"587"`
+	SMTPUsername   string `env:"KU_SMTP_USERNAME"`
+	SMTPPassword   string `env:"KU_SMTP_PASSWORD"`
+	SendGridAPIKey string `env:"KU_SENDGRID_APIKEY"`
+	TenantID       string `env:"KU_TENANT_ID"`
+	AppID          string `env:"KU_APP_ID"`
+	Secret1        string `env:"KU_SECRET_1"`
+	Secret2        string `env:"KU_SECRET_2"`
+}
+
+func (c config) HasEntraID() bool {
+	return c.TenantID != "" && c.AppID != ""
+}
+
+func (c config) HasClientSecrets() bool {
+	return c.Secret1 != "" && c.Secret2 != ""
+}
+
+func (c config) HasEmail() bool {
+	return c.EmailFrom != "" && c.EmailTo != "" && c.EmailSubject != ""
+}
+
+func (c config) HasSMTP() bool {
+	return c.SMTPHost != "" && c.SMTPPort > 0 && c.SMTPUsername != "" && c.SMTPPassword != ""
+}
+
+func (c config) HasSendGrid() bool {
+	return c.SendGridAPIKey != ""
+}
 
 var (
 	version string
@@ -21,104 +63,148 @@ var (
 	builtBy string
 )
 
+const (
+	defaultPort = 8000
+	defaultPath = "/webhook"
+)
+
 func main() {
-	port := flag.Int("port", 8000, "HTTP listen port")
-	path := flag.String("path", "/webhook", "WebHook path")
-	debug := flag.Bool("debug", false, "Enable debug logging")
+	cfg := configure()
+	os.Exit(run(cfg))
+}
+
+func configure() config {
+	var port int
+	var path string
+	var debug bool
+
+	flag.IntVar(&port, "port", defaultPort, "HTTP listen port")
+	flag.StringVar(&path, "path", defaultPath, "WebHook path")
+	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.Parse()
 
-	cfg := zap.NewProductionConfig()
-	var hOpts *zapslog.HandlerOptions
-	if *debug {
-		// if debug is enabled, set the log level to debug and add source location
-		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-		hOpts = &zapslog.HandlerOptions{
-			AddSource: true,
-		}
-	}
-	logger := zap.Must(cfg.Build())
-	defer logger.Sync()
-	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), hOpts)))
-	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy)
-	if *debug {
-		slog.Warn("debug logging enabled, secrets will be written to stderr")
+	var cfg config
+	if err := env.Parse(&cfg); err != nil {
+		slog.Error("parsing environment variables", "error", err)
+		os.Exit(1)
 	}
 
-	p, err := webhook.NewPublisher(publisherOptions()...)
+	// Apply command line flags if they are not set in the environment
+	if cfg.Port == defaultPort {
+		cfg.Port = port
+	}
+	if cfg.Path == defaultPath {
+		cfg.Path = path
+	}
+	if !cfg.Debug {
+		cfg.Debug = debug
+	}
+
+	return cfg
+}
+
+func setDefaultLogger(debug bool) func() {
+	cfg := zap.NewProductionConfig()
+	opts := []zapslog.HandlerOption{}
+	if debug {
+		// if debug is enabled, set the log level to debug and add source location
+		cfg.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+		opts = append(opts, zapslog.WithCaller(true))
+	}
+	logger := zap.Must(cfg.Build())
+	slog.SetDefault(slog.New(zapslog.NewHandler(logger.Core(), opts...)))
+	return func() {
+		logger.Sync()
+	}
+}
+
+func run(cfg config) int {
+	flush := setDefaultLogger(cfg.Debug)
+	defer flush()
+
+	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version())
+	if cfg.Debug {
+		slog.Warn("debug logging enabled")
+	}
+
+	p, err := event.NewPublisher(publisherOptions(cfg)...)
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	h, err := webhook.NewCloudEventHandler(context.Background(), p)
 	if err != nil {
-		slog.Error("fatal error creating CloudEvent receiver", "error", err)
-		os.Exit(1)
+		slog.Error("creating CloudEvent receiver", "error", err)
+		return 1
 	}
 
-	srvOpts := webhook.ServerOptions{
-		Path: *path,
-		Port: *port,
+	opts := append(serverOptions(cfg), webhook.WithPath(cfg.Path), webhook.WithPort(cfg.Port))
+	s, err := webhook.NewServer(h, opts...)
+	if err != nil {
+		slog.Error("creating server", "error", err)
+		return 1
 	}
-	secEnv := getRequiredEnv("KU_SECRET_1", "KU_SECRET_2")
+
+	errC := make(chan error, 1)
+	go func() {
+		slog.Info("starting webhook server", "port", cfg.Port, "path", cfg.Path)
+		errC <- s.ListenAndServe()
+	}()
+
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+
+	var exit int
+	select {
+	case err := <-errC:
+		if err != http.ErrServerClosed {
+			slog.Error("webhook server error", "error", err)
+			exit = 1
+		}
+	case sig := <-sigC:
+		signal.Stop(sigC)
+		slog.Warn("received signal, shutting down", "signal", sig.String())
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		slog.Info("waiting for server to shut down")
+		if err := s.Shutdown(ctx); err != nil {
+			slog.Error("shutting down server", "error", err)
+			if err := s.Close(); err != nil {
+				slog.Error("forcefully closing server", "error", err)
+			}
+		}
+		slog.Info("server has shut down")
+	}
+	return exit
+}
+
+func publisherOptions(cfg config) []event.Options {
+	opts := []event.Options{
+		event.WithLogging(),
+	}
+	if cfg.HasEmail() {
+		opts = append(opts, event.WithEmail(cfg.EmailFrom, cfg.EmailTo, cfg.EmailSubject))
+	}
+	if cfg.HasSMTP() {
+		opts = append(opts, event.WithSMTP(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword))
+	}
+	if cfg.HasSendGrid() {
+		opts = append(opts, event.WithSendgrid(cfg.SendGridAPIKey))
+	}
+	return opts
+}
+
+func serverOptions(cfg config) []webhook.Options {
+	var opts []webhook.Options
+	// We prefer Entra ID over client secrets. Using both doesn't make sense, as client secrets
+	// don't add value when using Entra ID.
 	switch {
-	case secEnv != nil:
-		srvOpts.Secret1 = secEnv["KU_SECRET_1"]
-		srvOpts.Secret2 = secEnv["KU_SECRET_2"]
-		slog.Info("protecting webhook with client secret")
-	default:
-		slog.Warn("no client secret configured, webhook will be unprotected")
-	}
-
-	s := webhook.NewServer(h, srvOpts)
-	done := make(chan struct{})
-	go webhook.Shutdown(context.Background(), s, done, 10*time.Second)
-
-	slog.Info("starting server", "port", *port)
-	if err = s.ListenAndServe(); err != http.ErrServerClosed {
-		slog.Error("server has unexpectedly shut down", "error", err)
-		os.Exit(1)
-	}
-	slog.Info("waiting for server to shut down")
-	<-done
-	slog.Info("server has shut down")
-}
-
-func getRequiredEnv(vars ...string) map[string]string {
-	envVars := make(map[string]string, 4)
-	for _, k := range vars {
-		v, ok := os.LookupEnv(k)
-		if !ok {
-			return nil
-		}
-		slog.Debug("using environment variable", "env", k, "value", v)
-		envVars[k] = v
-	}
-	return envVars
-}
-
-func publisherOptions() []webhook.Options {
-	opts := []webhook.Options{
-		webhook.WithLogging(),
-	}
-	if mailEnv := getRequiredEnv("KU_EMAIL_FROM", "KU_EMAIL_TO", "KU_EMAIL_SUBJECT"); mailEnv != nil {
-		opts = append(
-			opts,
-			webhook.WithEmail(mailEnv["KU_EMAIL_FROM"], mailEnv["KU_EMAIL_TO"], mailEnv["KU_EMAIL_SUBJECT"]))
-	}
-	if sgEnv := getRequiredEnv("KU_SENDGRID_APIKEY"); sgEnv != nil {
-		opts = append(opts, webhook.WithSendgrid(sgEnv["KU_SENDGRID_APIKEY"]))
-	}
-	if smtpEnv := getRequiredEnv("KU_SMTP_HOST", "KU_SMTP_PORT", "KU_SMTP_USERNAME", "KU_SMTP_PASSWORD"); smtpEnv != nil {
-		port, err := strconv.Atoi(smtpEnv["KU_SMTP_PORT"])
-		if err != nil {
-			// We just log the parsing error and continue.
-			// webhook.WithSMTP will return an error if the port is 0.
-			slog.Error("parsing SMTP port", "error", err)
-		}
-		opts = append(
-			opts,
-			webhook.WithSMTP(smtpEnv["KU_SMTP_HOST"], port, smtpEnv["KU_SMTP_USERNAME"], smtpEnv["KU_SMTP_PASSWORD"]))
+	case cfg.HasEntraID():
+		opts = append(opts, webhook.WithEntraID(cfg.TenantID, cfg.AppID))
+	case cfg.HasClientSecrets():
+		opts = append(opts, webhook.WithClientSecret(cfg.Secret1, cfg.Secret2))
 	}
 	return opts
 }

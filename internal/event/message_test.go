@@ -1,13 +1,13 @@
-package webhook_test
+package event_test
 
 import (
 	"testing"
 
-	"github.com/joergjo/kubeup/internal/webhook"
+	"github.com/joergjo/kubeup/internal/event"
 )
 
 func TestNewKubernetesVersionTemplate(t *testing.T) {
-	e := webhook.ContainerServiceNewKubernetesVersionAvailableEvent{
+	e := event.ContainerServiceNewKubernetesVersionAvailableEvent{
 		LatestSupportedKubernetesVersion: "1.24.0",
 		LatestStableKubernetesVersion:    "1.23.0",
 		LowestMinorKubernetesVersion:     "1.22.0",
@@ -18,8 +18,8 @@ func TestNewKubernetesVersionTemplate(t *testing.T) {
 }
 
 func TestSupportEndingTemplate(t *testing.T) {
-	e := webhook.ContainerServiceClusterSupportEndingEvent{
-		ContainerServiceClusterSupportEvent: webhook.ContainerServiceClusterSupportEvent{
+	e := event.ContainerServiceClusterSupportEndingEvent{
+		ContainerServiceClusterSupportEvent: event.ContainerServiceClusterSupportEvent{
 			KubernetesVersion: "1.19.0",
 		},
 	}
@@ -28,8 +28,8 @@ func TestSupportEndingTemplate(t *testing.T) {
 }
 
 func TestSupportEndedTemplate(t *testing.T) {
-	e := webhook.ContainerServiceClusterSupportEndedEvent{
-		ContainerServiceClusterSupportEvent: webhook.ContainerServiceClusterSupportEvent{
+	e := event.ContainerServiceClusterSupportEndedEvent{
+		ContainerServiceClusterSupportEvent: event.ContainerServiceClusterSupportEvent{
 			KubernetesVersion: "1.19.0",
 		},
 	}
@@ -38,8 +38,8 @@ func TestSupportEndedTemplate(t *testing.T) {
 }
 
 func TestNodePoolRollingStartedTemplate(t *testing.T) {
-	e := webhook.ContainerServiceNodePoolRollingStartedEvent{
-		ContainerServiceClusterRollingEvent: webhook.ContainerServiceClusterRollingEvent{
+	e := event.ContainerServiceNodePoolRollingStartedEvent{
+		ContainerServiceClusterRollingEvent: event.ContainerServiceClusterRollingEvent{
 			NodePoolName: "pool1",
 		},
 	}
@@ -48,8 +48,8 @@ func TestNodePoolRollingStartedTemplate(t *testing.T) {
 }
 
 func TestNodePoolRollingSucceededTemplate(t *testing.T) {
-	e := webhook.ContainerServiceNodePoolRollingSucceededEvent{
-		ContainerServiceClusterRollingEvent: webhook.ContainerServiceClusterRollingEvent{
+	e := event.ContainerServiceNodePoolRollingSucceededEvent{
+		ContainerServiceClusterRollingEvent: event.ContainerServiceClusterRollingEvent{
 			NodePoolName: "pool1",
 		},
 	}
@@ -58,8 +58,8 @@ func TestNodePoolRollingSucceededTemplate(t *testing.T) {
 }
 
 func TestNodePoolRollingFailedTemplate(t *testing.T) {
-	e := webhook.ContainerServiceNodePoolRollingFailedEvent{
-		ContainerServiceClusterRollingEvent: webhook.ContainerServiceClusterRollingEvent{
+	e := event.ContainerServiceNodePoolRollingFailedEvent{
+		ContainerServiceClusterRollingEvent: event.ContainerServiceClusterRollingEvent{
 			NodePoolName: "pool1",
 		},
 	}
@@ -67,8 +67,8 @@ func TestNodePoolRollingFailedTemplate(t *testing.T) {
 	testTemplate(t, e, src, "nodepool-rolling-failed.gohtml")
 }
 
-func testTemplate[T webhook.ContainerServiceEvent](t *testing.T, e T, src, filename string) {
-	mb := webhook.NewMessageBuilder[T](filename)
+func testTemplate[T event.ContainerServiceEvent](t *testing.T, e T, src, filename string) {
+	mb := event.NewMessageBuilder[T](filename)
 	_, err := mb.Build(e, src)
 	if err != nil {
 		t.Fatalf("Expected nil err, got: %v", err)

@@ -2,116 +2,75 @@ package webhook
 
 import (
 	"errors"
-	"log/slog"
+	"fmt"
+	"net/url"
 )
 
 type options struct {
-	sendgrid        *sendgridOptions
-	smtp            *smtpOptions
-	email           *emailOptions
-	log             bool
-	customPublisher PublisherFunc
+	path         string
+	port         int
+	clientSecret *clientSecretOptions
+	entraID      *entraIDOptions
 }
 
-type sendgridOptions struct {
-	apiKey string
+type entraIDOptions struct {
+	issuerURL *url.URL
+	appID     string
 }
 
-type smtpOptions struct {
-	host     string
-	port     int
-	username string
-	password string
+type clientSecretOptions struct {
+	secret1 string
+	secret2 string
 }
 
-type emailOptions struct {
-	from    string
-	to      string
-	subject string
-}
-
-// Options represents a functional option for the Publisher.
+// Options represents a functional option for the webhook.
 type Options func(options *options) error
 
-// WithLogging configures the Publisher to output messages as structured logs.
-func WithLogging() Options {
+// WithClientSecret configures the webhook to use a specific client secret.
+func WithClientSecret(sec1, sec2 string) Options {
 	return func(options *options) error {
-		options.log = true
-		slog.Debug("configured log publisher")
+		if sec1 == "" && sec2 == "" {
+			return errors.New("two client secrets required")
+		}
+		options.clientSecret = &clientSecretOptions{secret1: sec1, secret2: sec2}
 		return nil
 	}
 }
 
-// WithEmail configures the Publisher to use a specific email recipient.
-// This is required when using SendGrid or SMTP.
-func WithEmail(from, to, subject string) Options {
+// WithEntraID configures the webhook to check for a valid access token issued by Entra ID.
+func WithEntraID(tenantID, appID string) Options {
 	return func(options *options) error {
-		if from == "" {
-			return errors.New("email from address required")
+		iss := fmt.Sprintf("https://sts.windows.net/%s/", tenantID)
+		issURL, err := url.Parse(iss)
+		if err != nil {
+			return fmt.Errorf("issuer URL required: %w", err)
 		}
-		if to == "" {
-			return errors.New("email to address required")
+		if appID == "" {
+			return errors.New("app ID URI required")
 		}
-		if subject == "" {
-			return errors.New("email subject required")
-		}
-		e := emailOptions{from: from, to: to, subject: subject}
-		options.email = &e
-		slog.Debug("configured email")
+		options.entraID = &entraIDOptions{issuerURL: issURL, appID: appID}
 		return nil
 	}
 }
 
-// WithPublisherFunc configures the Publisher to use a custom PublisherFunc.
-func WithPublisherFunc(fn PublisherFunc) Options {
+// WithPath configures the webhook to use a specific path.
+func WithPath(path string) Options {
 	return func(options *options) error {
-		if fn == nil {
-			return errors.New("PublisherFunc must not be nil")
+		if path == "" {
+			return errors.New("path required")
 		}
-		options.customPublisher = fn
-		slog.Debug("configured custom publisher")
+		options.path = path
 		return nil
 	}
 }
 
-// WithSendgrid configures the Publisher to send messages via SendGrid.
-func WithSendgrid(apiKey string) Options {
+// WithPort configures the webhook to use a specific port.
+func WithPort(port int) Options {
 	return func(options *options) error {
-		if apiKey == "" {
-			return errors.New("SendGrid API key required")
+		if port <= 0 {
+			return errors.New("port required")
 		}
-		s := sendgridOptions{
-			apiKey: apiKey,
-		}
-		options.sendgrid = &s
-		slog.Debug("configured SendGrid publisher")
-		return nil
-	}
-}
-
-// WithSMTP configures the Publisher to send messages via SMTP.
-func WithSMTP(host string, port int, username string, password string) Options {
-	return func(options *options) error {
-		if host == "" {
-			return errors.New("SMTP host required")
-		}
-		if port == 0 {
-			return errors.New("SMTP port required")
-		}
-		if username == "" {
-			return errors.New("SMTP username required")
-		}
-		if password == "" {
-			return errors.New("SMTP password required")
-		}
-		s := smtpOptions{
-			host:     host,
-			port:     port,
-			username: username,
-			password: password,
-		}
-		options.smtp = &s
-		slog.Debug("configured SMTP publisher")
+		options.port = port
 		return nil
 	}
 }

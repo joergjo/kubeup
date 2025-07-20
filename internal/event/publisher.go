@@ -1,4 +1,4 @@
-package webhook
+package event
 
 import (
 	"errors"
@@ -21,8 +21,8 @@ type Publisher struct {
 // Publish sends a message to all registered publishers.
 func (p *Publisher) Publish(m Message) error {
 	var result error
-	for _, pub := range p.publisherFns {
-		if err := pub(m); err != nil {
+	for _, fn := range p.publisherFns {
+		if err := fn(m); err != nil {
 			result = errors.Join(err)
 		}
 	}

@@ -1,4 +1,4 @@
-package webhook
+package event
 
 import (
 	"fmt"
@@ -18,6 +18,8 @@ const (
 	EventNodePoolRollingSucceeded = "Microsoft.ContainerService.NodePoolRollingSucceeded"
 	// EventNodePoolRollingFailed is the event type that is sent when a node pool rolling upgrade has failed.
 	EventNodePoolRollingFailed = "Microsoft.ContainerService.NodePoolRollingFailed"
+	// EventSubscriptionDeleted is the event type that is sent when a subscription is deleted.
+	EventSubscriptionDeleted = "Microsoft.EventGrid.SubscriptionDeletedEvent"
 )
 
 // ContainerServiceNewKubernetesVersionAvailableEvent is the event that is sent by Azure Kubernetes Service

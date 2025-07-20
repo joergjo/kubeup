@@ -18,6 +18,9 @@ param secret1 string
 @secure()
 param secret2 string
 
+@description('Specifies the webhook\'s Entra ID application ID or URI.')
+param appId string
+
 @description('Specifies the notification\'s email From address.')
 param emailFrom string
 
@@ -35,7 +38,7 @@ param sendGridApiKey string
 param smtpHost string
 
 @description('Specifies the SMTP port.')
-param smtpPort int
+param smtpPort string
 
 @description('Specifies the SMTP username.')
 @secure()
@@ -45,6 +48,7 @@ param smtpUsername string
 @secure()
 param smtpPassword string
 
+var tenantId = appId != '' ? tenant().tenantId : ''
 var port = 8000
 
 var allSecrets = [
@@ -113,13 +117,21 @@ var allEnvVars = [
     name: 'KU_SECRET_2'
     secretRef: 'secret-2'
   }
+  {
+    name: 'KU_TENANT_ID'
+    value: tenantId
+  }
+  {
+    name: 'KU_APP_ID'
+    value: appId
+  }
 ]
 
 var secretNames = map(secrets, s => s.name)
 
-var envVars = filter(allEnvVars, e => (contains(e, 'secretRef') && contains(secretNames, e.secretRef)) || contains(e, 'value'))
+var envVars = filter(allEnvVars, e => (contains(e, 'secretRef') && contains(secretNames, any(e).secretRef)) || contains(e, 'value') && !empty(any(e).value))
 
-resource containerApp 'Microsoft.App/containerApps@2023-08-01-preview' = {
+resource containerApp 'Microsoft.App/containerApps@2025-02-02-preview' = {
   name: name
   location: location
   properties: {

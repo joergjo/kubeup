@@ -17,6 +17,9 @@ param secret1 string
 @secure()
 param secret2 string
 
+@description('Specifies the webhook\'s Entra ID application ID or URI.')
+param appId string
+
 @description('Specifies the notification\'s email From address.')
 param emailFrom string
 
@@ -33,8 +36,11 @@ param sendGridApiKey string
 @description('Specifies the SMTP hostname.')
 param smtpHost string
 
+// We use a string here because we want to able to pass 
+// an empty string to the module, which will result in a 
+// default value being used.
 @description('Specifies the SMTP port.')
-param smtpPort int = 587
+param smtpPort string
 
 @description('Specifies the SMTP username.')
 @secure()
@@ -72,6 +78,7 @@ module app 'modules/app.bicep' = {
     image: image
     secret1: secret1
     secret2: secret2
+    appId: appId
     emailFrom: emailFrom
     emailTo: emailTo
     emailSubject: emailSubject

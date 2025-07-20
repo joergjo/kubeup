@@ -1,13 +1,15 @@
 module github.com/joergjo/kubeup
 
-go 1.21
+go 1.24.0
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.15.2
+	github.com/auth0/go-jwt-middleware/v2 v2.3.0
+	github.com/caarlos0/env/v11 v11.3.1
+	github.com/cloudevents/sdk-go/v2 v2.16.1
 	github.com/go-mail/mail/v2 v2.3.0
-	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
+	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	go.uber.org/zap v1.27.0
-	go.uber.org/zap/exp v0.2.0
+	go.uber.org/zap/exp v0.3.0
 )
 
 require (
@@ -17,7 +19,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/crypto v0.40.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )

@@ -4,10 +4,13 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
+	"strings"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
+	"github.com/joergjo/kubeup/internal/event"
 )
 
 const (
@@ -16,55 +19,104 @@ const (
 )
 
 // NewCloudEventHandler creates a new CloudEvent handler with the given Publisher.
-func NewCloudEventHandler(ctx context.Context, pub *Publisher) (http.Handler, error) {
-	p, err := cloudevents.NewHTTP(cehttp.WithDefaultOptionsHandlerFunc(
-		[]string{http.MethodOptions},
+func NewCloudEventHandler(ctx context.Context, pub *event.Publisher) (http.Handler, error) {
+	oh := newOptionsHandler(
+		[]string{http.MethodPost},
 		cehttp.DefaultAllowedRate,
 		[]string{AzureEventGridOrigin},
-		true))
+	)
+	p, err := cloudevents.NewHTTP(cehttp.WithOptionsHandlerFunc(oh))
 	if err != nil {
 		slog.Error("creating protocol settings", "error", err)
 		return nil, err
 	}
-	h, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newEventReceiver(pub))
+	rh, err := cloudevents.NewHTTPReceiveHandler(ctx, p, newEventReceiver(pub))
 	if err != nil {
-		slog.Error("creating receiver", "error", err)
+		slog.Error("creating receive handler", "error", err)
 		return nil, err
 	}
-
-	return h, nil
+	return rh, nil
 }
 
-func newEventReceiver(p *Publisher) func(context.Context, cloudevents.Event) protocol.Result {
+func validateRequestOrigin(origin string, allowed []string) (string, bool) {
+	slog.Info("validating origin", "origin", origin)
+	for _, ao := range allowed {
+		if ao == "*" {
+			return ao, true
+		}
+		if strings.HasPrefix(origin, ao) {
+			return ao, true
+		}
+	}
+	return origin, false
+}
+
+func newOptionsHandler(methods []string, rate int, origins []string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodOptions {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		headers := make(http.Header)
+
+		ro := r.Header.Get("WebHook-Request-Origin")
+		if origin, ok := validateRequestOrigin(ro, origins); !ok {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		} else {
+			headers.Set("WebHook-Allowed-Origin", origin)
+		}
+
+		if _, ok := r.Header[http.CanonicalHeaderKey("WebHook-Request-Rate")]; ok {
+			headers.Set("WebHook-Allowed-Rate", strconv.Itoa(rate))
+		}
+
+		if len(methods) > 0 {
+			headers.Set("Allow", strings.Join(methods, ", "))
+		} else {
+			headers.Set("Allow", http.MethodPost)
+		}
+
+		for k := range headers {
+			w.Header().Set(k, headers.Get(k))
+		}
+	}
+}
+
+func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		slog.Info("received event", "id", e.ID())
 		switch e.Type() {
-		case EventNewKubernetesVersionAvailable:
-			return publishEvent[ContainerServiceNewKubernetesVersionAvailableEvent](e, p, "new-kubernetes-version.gohtml")
-		case EventClusterSupportEnding:
-			return publishEvent[ContainerServiceClusterSupportEndingEvent](e, p, "cluster-support-ending.gohtml")
-		case EventClusterSupportEnded:
-			return publishEvent[ContainerServiceClusterSupportEndedEvent](e, p, "cluster-support-ended.gohtml")
-		case EventNodePoolRollingStarted:
-			return publishEvent[ContainerServiceNodePoolRollingStartedEvent](e, p, "nodepool-rolling-started.gohtml")
-		case EventNodePoolRollingSucceeded:
-			return publishEvent[ContainerServiceNodePoolRollingSucceededEvent](e, p, "nodepool-rolling-succeeded.gohtml")
-		case EventNodePoolRollingFailed:
-			return publishEvent[ContainerServiceNodePoolRollingFailedEvent](e, p, "nodepool-rolling-failed.gohtml")
+		case event.EventNewKubernetesVersionAvailable:
+			return publishEvent[event.ContainerServiceNewKubernetesVersionAvailableEvent](e, p, "new-kubernetes-version.gohtml")
+		case event.EventClusterSupportEnding:
+			return publishEvent[event.ContainerServiceClusterSupportEndingEvent](e, p, "cluster-support-ending.gohtml")
+		case event.EventClusterSupportEnded:
+			return publishEvent[event.ContainerServiceClusterSupportEndedEvent](e, p, "cluster-support-ended.gohtml")
+		case event.EventNodePoolRollingStarted:
+			return publishEvent[event.ContainerServiceNodePoolRollingStartedEvent](e, p, "nodepool-rolling-started.gohtml")
+		case event.EventNodePoolRollingSucceeded:
+			return publishEvent[event.ContainerServiceNodePoolRollingSucceededEvent](e, p, "nodepool-rolling-succeeded.gohtml")
+		case event.EventNodePoolRollingFailed:
+			return publishEvent[event.ContainerServiceNodePoolRollingFailedEvent](e, p, "nodepool-rolling-failed.gohtml")
+		case event.EventSubscriptionDeleted:
+			slog.Warn("event subscription deleted", "resource", e.Source())
+			return cloudevents.NewHTTPResult(http.StatusOK, "")
 		default:
-			slog.Warn("received unexpected CloudEvent type", "type", e.Type())
+			slog.Warn("unexpected CloudEvent type", "type", e.Type())
 			return cloudevents.NewHTTPResult(http.StatusBadRequest, "unexpected CloudEvent type %q", e.Type())
 		}
 	}
 }
 
-func publishEvent[T ContainerServiceEvent](e cloudevents.Event, p *Publisher, filename string) protocol.Result {
+func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.Publisher, filename string) protocol.Result {
 	ce, err := unmarshal[T](e)
 	if err != nil {
 		slog.Error("deserializing event", "error", err, "type", e.Type())
 		return cloudevents.NewHTTPResult(http.StatusBadRequest, "invalid %s data", e.Type())
 	}
-	mb := NewMessageBuilder[T](filename)
+	mb := event.NewMessageBuilder[T](filename)
 	msg, err := mb.Build(ce, e.Source())
 	if err != nil {
 		slog.Error("building message", "error", err)
@@ -77,7 +129,7 @@ func publishEvent[T ContainerServiceEvent](e cloudevents.Event, p *Publisher, fi
 	return cloudevents.NewHTTPResult(http.StatusOK, "")
 }
 
-func unmarshal[T ContainerServiceEvent](e cloudevents.Event) (T, error) {
+func unmarshal[T event.ContainerServiceEvent](e cloudevents.Event) (T, error) {
 	var data T
 	if err := e.DataAs(&data); err != nil {
 		return data, err
