@@ -19,6 +19,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build variables
+        id: vars
+        run: |
+          echo "VERSION=$(git rev-parse --short HEAD)-stable" >> $GITHUB_OUTPUT
+          echo "COMMIT=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
       - name: Define Docker meta data
         id: meta
         uses: docker/metadata-action@v5
@@ -47,3 +54,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.vars.outputs.VERSION }}
+            COMMIT=${{ steps.vars.outputs.COMMIT }}
+            DATE=${{ steps.vars.outputs.DATE }}
