@@ -58,6 +58,8 @@ cp .env.template .env
 task deploy:aks
 ```
 
+>Note: The provided instructions assume that your cluster and the `kubeup` resources are deployed in the same Azure region. This is just to keep things simple. You can run `kubeup` in any public Azure region.
+
 ### Prepare the `.env` file
 Copy the template and configure for your deployment:
 

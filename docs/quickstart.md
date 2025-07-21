@@ -35,7 +35,7 @@ cp .env.template .env
 
 Remove all entries from the template *except* those shown below. Provide your resource names, secrets, and preferred Azure region. If you created a cluster in the previous step, use the same names and region.
 
-> **Tip:** Create secure client secrets with `openssl rand -hex 32`
+> **Tip:** Create secure client secrets with `openssl rand -hex 32`.
 
 ```bash
 # AKS cluster configuration
