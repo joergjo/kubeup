@@ -20,7 +20,6 @@ const (
 	signingKey            = "qwertyuiopasdfghjklzxcvbnm123456"
 	issuer                = "http://jwtbuilder.jamiekurtz.com"
 	audience              = "github.com/joergjo/kubeup"
-	role                  = "AzureEventGridSecureWebhookSubscriber"
 	origin                = "eventgrid.azure.net"
 )
 
