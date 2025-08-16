@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/joergjo/kubeup/internal/event"
 	"github.com/joergjo/kubeup/internal/webhook"
@@ -59,19 +60,6 @@ func TestValidation(t *testing.T) {
 }
 
 func TestReceive(t *testing.T) {
-	newVersionEvent := event.ContainerServiceNewKubernetesVersionAvailableEvent{
-		LatestSupportedKubernetesVersion: "1.24.0",
-		LatestStableKubernetesVersion:    "1.23.0",
-		LowestMinorKubernetesVersion:     "1.22.0",
-		LatestPreviewKubernetesVersion:   "1.25.0",
-	}
-	rollingEvent := event.ContainerServiceClusterRollingEvent{
-		NodePoolName: "nodepool1",
-	}
-	supportEvent := event.ContainerServiceClusterSupportEvent{
-		KubernetesVersion: "1.26.0",
-	}
-
 	tests := []struct {
 		name        string
 		eventType   string
@@ -82,73 +70,71 @@ func TestReceive(t *testing.T) {
 	}{
 		{
 			name:        "new_kubernetes_version_available",
-			eventType:   event.EventNewKubernetesVersionAvailable,
+			eventType:   azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data:        newVersionEvent,
-			status:      http.StatusOK,
+			data: event.NewContainerServiceNewKubernetesVersionAvailableEvent(
+				"1.24.0",
+				"1.23.0",
+				"1.22.0",
+				"1.25.0"),
+			status: http.StatusOK,
 		},
 		{
 			name:        "nodepool_rolling_started",
-			eventType:   event.EventNodePoolRollingStarted,
+			eventType:   azsystemevents.TypeContainerServiceNodePoolRollingStarted, // event.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: event.ContainerServiceNodePoolRollingStartedEvent{
-				ContainerServiceClusterRollingEvent: rollingEvent,
-			},
-			status: http.StatusOK,
+			data:        event.NewContainerServiceNodePoolRollingStartedEvent("nodepool1"),
+			status:      http.StatusOK,
 		},
 		{
 			name:        "nodepool_rolling_succeeded",
-			eventType:   event.EventNodePoolRollingSucceeded,
+			eventType:   azsystemevents.TypeContainerServiceNodePoolRollingStarted, //azsystemevents.TypeContainerServiceNodePoolRollingSucceeded, // event.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: event.ContainerServiceNodePoolRollingSucceededEvent{
-				ContainerServiceClusterRollingEvent: rollingEvent,
-			},
-			status: http.StatusOK,
+			data:        event.NewContainerServiceNodePoolRollingSucceededEvent("nodepool1"),
+			status:      http.StatusOK,
 		},
 		{
 			name:        "nodepool_rolling_failed",
-			eventType:   event.EventNodePoolRollingFailed,
+			eventType:   azsystemevents.TypeContainerServiceNodePoolRollingFailed,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: event.ContainerServiceNodePoolRollingFailedEvent{
-				ContainerServiceClusterRollingEvent: rollingEvent,
-			},
-			status: http.StatusOK,
+			data:        event.NewContainerServiceNodePoolRollingFailedEvent("nodepool1"),
+			status:      http.StatusOK,
 		},
 		{
 			name:        "cluster_support_ending",
-			eventType:   event.EventClusterSupportEnding,
+			eventType:   azsystemevents.TypeContainerServiceClusterSupportEnding,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: event.ContainerServiceClusterSupportEndingEvent{
-				ContainerServiceClusterSupportEvent: supportEvent,
-			},
-			status: http.StatusOK,
+			data:        event.NewContainerServiceClusterSupportEndingEvent("1.19.0"),
+			status:      http.StatusOK,
 		},
 		{
 			name:        "cluster_support_ended",
-			eventType:   event.EventClusterSupportEnded,
+			eventType:   azsystemevents.TypeContainerServiceClusterSupportEnded, // event.EventNodePoolRollingStarted,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
-			data: event.ContainerServiceClusterSupportEndedEvent{
-				ContainerServiceClusterSupportEvent: supportEvent,
-			},
-			status: http.StatusOK,
+			data:        event.NewContainerServiceClusterSupportEndedEvent("1.19.0"),
+			status:      http.StatusOK,
 		},
 		{
 			name:        "invalid_event_type",
 			eventType:   "invalid_event_type",
 			contentType: cloudevents.ApplicationCloudEventsJSON,
-			data:        newVersionEvent,
-			method:      http.MethodPost,
-			status:      http.StatusBadRequest,
+			data: event.NewContainerServiceNewKubernetesVersionAvailableEvent(
+				"1.24.0",
+				"1.23.0",
+				"1.22.0",
+				"1.25.0"),
+			method: http.MethodPost,
+			status: http.StatusBadRequest,
 		},
 		{
 			name:        "get_not_allowed",
-			eventType:   event.EventNewKubernetesVersionAvailable,
+			eventType:   azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable, // event.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodGet,
@@ -156,7 +142,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "delete_not_allowed",
-			eventType:   event.EventNewKubernetesVersionAvailable,
+			eventType:   azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable, // event.EventNewKubernetesVersionAvailable,
 			contentType: "",
 			data:        nil,
 			method:      http.MethodDelete,
@@ -195,12 +181,11 @@ func TestReceive(t *testing.T) {
 }
 
 func TestPublisherError(t *testing.T) {
-	newVersionEvent := event.ContainerServiceNewKubernetesVersionAvailableEvent{
-		LatestSupportedKubernetesVersion: "1.24.0",
-		LatestStableKubernetesVersion:    "1.23.0",
-		LowestMinorKubernetesVersion:     "1.22.0",
-		LatestPreviewKubernetesVersion:   "1.25.0",
-	}
+	e := event.NewContainerServiceNewKubernetesVersionAvailableEvent(
+		"1.24.0",
+		"1.23.0",
+		"1.22.0",
+		"1.25.0")
 
 	opts := event.WithPublisherFunc(func(m event.Message) error {
 		err1 := errors.New("first error publishing event")
@@ -215,8 +200,8 @@ func TestPublisherError(t *testing.T) {
 	ce := cloudevents.NewEvent()
 	ce.SetID("1234567890abcdef1234567890abcdef12345678")
 	ce.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
-	ce.SetType(event.EventNewKubernetesVersionAvailable)
-	ce.SetData(cloudevents.ApplicationCloudEventsJSON, newVersionEvent)
+	ce.SetType(azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable)
+	ce.SetData(cloudevents.ApplicationCloudEventsJSON, e)
 
 	body, err := json.Marshal(ce)
 	if err != nil {

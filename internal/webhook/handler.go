@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents"
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
@@ -90,19 +91,19 @@ func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Even
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		slog.Info("received event", "id", e.ID())
 		switch e.Type() {
-		case event.EventNewKubernetesVersionAvailable:
+		case azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable: //event.EventNewKubernetesVersionAvailable:
 			return publishEvent[event.ContainerServiceNewKubernetesVersionAvailableEvent](e, p, "new-kubernetes-version.gohtml")
-		case event.EventClusterSupportEnding:
+		case azsystemevents.TypeContainerServiceClusterSupportEnding: // event.EventClusterSupportEnding:
 			return publishEvent[event.ContainerServiceClusterSupportEndingEvent](e, p, "cluster-support-ending.gohtml")
-		case event.EventClusterSupportEnded:
+		case azsystemevents.TypeContainerServiceClusterSupportEnded: // event.EventClusterSupportEnded:
 			return publishEvent[event.ContainerServiceClusterSupportEndedEvent](e, p, "cluster-support-ended.gohtml")
-		case event.EventNodePoolRollingStarted:
+		case azsystemevents.TypeContainerServiceNodePoolRollingStarted: // event.EventNodePoolRollingStarted:
 			return publishEvent[event.ContainerServiceNodePoolRollingStartedEvent](e, p, "nodepool-rolling-started.gohtml")
-		case event.EventNodePoolRollingSucceeded:
+		case azsystemevents.TypeContainerServiceNodePoolRollingSucceeded: //event.EventNodePoolRollingSucceeded:
 			return publishEvent[event.ContainerServiceNodePoolRollingSucceededEvent](e, p, "nodepool-rolling-succeeded.gohtml")
-		case event.EventNodePoolRollingFailed:
+		case azsystemevents.TypeContainerServiceNodePoolRollingFailed: // event.EventNodePoolRollingFailed:
 			return publishEvent[event.ContainerServiceNodePoolRollingFailedEvent](e, p, "nodepool-rolling-failed.gohtml")
-		case event.EventSubscriptionDeleted:
+		case azsystemevents.TypeSubscriptionDeleted: // event.EventSubscriptionDeleted:
 			slog.Warn("event subscription deleted", "resource", e.Source())
 			return cloudevents.NewHTTPResult(http.StatusOK, "")
 		default:
