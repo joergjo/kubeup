@@ -41,6 +41,8 @@ func NewCloudEventHandler(ctx context.Context, pub *event.Publisher) (http.Handl
 	return rh, nil
 }
 
+// validateRequestOrigin checks if the provided origin is allowed based on the allowed origins list.
+// Returns the matched origin and a boolean indicating if the origin is allowed.
 func validateRequestOrigin(origin string, allowed []string) (string, bool) {
 	slog.Info("validating origin", "origin", origin)
 	for _, ao := range allowed {
@@ -54,6 +56,8 @@ func validateRequestOrigin(origin string, allowed []string) (string, bool) {
 	return origin, false
 }
 
+// newOptionsHandler creates an HTTP handler for OPTIONS requests following the CloudEvents webhook spec.
+// It validates the origin, sets allowed methods, and handles rate limiting headers.
 func newOptionsHandler(methods []string, rate int, origins []string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodOptions {
@@ -87,6 +91,8 @@ func newOptionsHandler(methods []string, rate int, origins []string) http.Handle
 	}
 }
 
+// newEventReceiver creates a function that processes CloudEvents.
+// It handles different event types from Azure Kubernetes Service and publishes them using the provided publisher.
 func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Event) protocol.Result {
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		slog.Info("received event", "id", e.ID())
@@ -113,6 +119,8 @@ func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Even
 	}
 }
 
+// publishEvent processes a specific type of CloudEvent, creates a message using the appropriate template,
+// and publishes it using the event publisher. Returns an HTTP result indicating success or failure.
 func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.Publisher, filename string) protocol.Result {
 	ce, err := unmarshal[T](e)
 	if err != nil {
@@ -132,6 +140,8 @@ func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.P
 	return cloudevents.NewHTTPResult(http.StatusOK, "")
 }
 
+// unmarshal deserializes the CloudEvent data into the appropriate event type.
+// Uses strict JSON decoding to ensure the data matches the expected structure.
 func unmarshal[T event.ContainerServiceEvent](e cloudevents.Event) (T, error) {
 	var data T
 	dec := json.NewDecoder(bytes.NewReader(e.DataEncoded))

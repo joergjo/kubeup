@@ -63,6 +63,8 @@ func NewPublisher(opts ...Options) (*Publisher, error) {
 	return &p, nil
 }
 
+// newSendGridPublisher creates a new PublisherFunc that sends messages via SendGrid API.
+// It requires SendGrid API configuration and email metadata (from, to, subject).
 func newSendGridPublisher(s sendgridOptions, e emailOptions) PublisherFunc {
 	client := sendgrid.NewSendClient(s.apiKey)
 	return func(m Message) error {
@@ -81,6 +83,8 @@ func newSendGridPublisher(s sendgridOptions, e emailOptions) PublisherFunc {
 	}
 }
 
+// newLogPublisher creates a new PublisherFunc that outputs messages to structured logs.
+// The messages are logged at INFO level.
 func newLogPublisher() PublisherFunc {
 	return func(m Message) error {
 		slog.Info("Kubernetes event", "source", m.Source, "data", m.PlainText)
@@ -88,6 +92,8 @@ func newLogPublisher() PublisherFunc {
 	}
 }
 
+// newSMTPPublisher creates a new PublisherFunc that sends messages via SMTP.
+// It requires SMTP server configuration and email metadata (from, to, subject).
 func newSMTPPublisher(s smtpOptions, e emailOptions) PublisherFunc {
 	return func(m Message) error {
 		msg := mail.NewMessage()

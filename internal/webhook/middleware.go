@@ -17,6 +17,8 @@ import (
 // Defined in https://github.com/cloudevents/spec/blob/main/cloudevents/http-webhook.md#32-uri-query-parameter.
 const accessTokenParam = "access_token"
 
+// newClientSecretMiddleware creates a middleware that validates the client secret in request query parameters.
+// It expects the secret in the "access_token" query parameter and validates it against two possible values (for rotation).
 func newClientSecretMiddleware(sec1, sec2 string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -31,10 +33,13 @@ func newClientSecretMiddleware(sec1, sec2 string) func(http.Handler) http.Handle
 	}
 }
 
+// roleClaims represents the custom claims containing roles from an Entra ID JWT.
 type roleClaims struct {
 	Roles []string `json:"roles"`
 }
 
+// Validate checks if the required role "AzureEventGridSecureWebhookSubscriber" is present in the claims.
+// This implements the validator.CustomClaims interface.
 func (c roleClaims) Validate(ctx context.Context) error {
 	ok := slices.Contains(c.Roles, "AzureEventGridSecureWebhookSubscriber")
 	if !ok {
@@ -43,6 +48,8 @@ func (c roleClaims) Validate(ctx context.Context) error {
 	return nil
 }
 
+// newEntraIDMiddleware creates a middleware that validates Entra ID JWT tokens.
+// It uses the provided validator to check token authenticity and required claims.
 func newEntraIDMiddleware(v *validator.Validator) func(http.Handler) http.Handler {
 	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
 		slog.Error("validating token", "error", err)
@@ -59,6 +66,8 @@ func newEntraIDMiddleware(v *validator.Validator) func(http.Handler) http.Handle
 	}
 }
 
+// newValidator creates a new JWT validator for Entra ID tokens.
+// It validates token signature, issuer, audience, and custom role claims.
 func newValidator(iss *url.URL, aud string) (*validator.Validator, error) {
 	p := jwks.NewCachingProvider(iss, 5*time.Minute)
 	v, err := validator.New(
