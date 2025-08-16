@@ -100,7 +100,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "nodepool_rolling_succeeded",
-			eventType:   event.EventNodePoolRollingStarted,
+			eventType:   event.EventNodePoolRollingSucceeded,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data: event.ContainerServiceNodePoolRollingSucceededEvent{
@@ -110,7 +110,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "nodepool_rolling_failed",
-			eventType:   event.EventNodePoolRollingStarted,
+			eventType:   event.EventNodePoolRollingFailed,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data: event.ContainerServiceNodePoolRollingFailedEvent{
@@ -120,7 +120,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "cluster_support_ending",
-			eventType:   event.EventNodePoolRollingStarted,
+			eventType:   event.EventClusterSupportEnding,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data: event.ContainerServiceClusterSupportEndingEvent{
@@ -130,7 +130,7 @@ func TestReceive(t *testing.T) {
 		},
 		{
 			name:        "cluster_support_ended",
-			eventType:   event.EventNodePoolRollingStarted,
+			eventType:   event.EventClusterSupportEnded,
 			contentType: cloudevents.ApplicationCloudEventsJSON,
 			method:      http.MethodPost,
 			data: event.ContainerServiceClusterSupportEndedEvent{
@@ -175,7 +175,7 @@ func TestReceive(t *testing.T) {
 			ce.SetID("1234567890abcdef1234567890abcdef12345678")
 			ce.SetSource("/subscriptions/a27b9009-b63f-4c18-b50b-b91985e03b69/resourceGroups/test/providers/Microsoft.ContainerService/managedClusters/test-cluster")
 			ce.SetType(tc.eventType)
-			ce.SetData(cloudevents.ApplicationCloudEventsJSON, newVersionEvent)
+			ce.SetData(cloudevents.ApplicationCloudEventsJSON, tc.data)
 
 			body, err := json.Marshal(ce)
 			if err != nil {

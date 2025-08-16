@@ -1,7 +1,9 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -131,7 +133,9 @@ func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.P
 
 func unmarshal[T event.ContainerServiceEvent](e cloudevents.Event) (T, error) {
 	var data T
-	if err := e.DataAs(&data); err != nil {
+	dec := json.NewDecoder(bytes.NewReader(e.DataEncoded))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&data); err != nil {
 		return data, err
 	}
 	return data, nil
