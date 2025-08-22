@@ -122,7 +122,7 @@ func run(cfg config) int {
 	flush := setDefaultLogger(cfg.Debug)
 	defer flush()
 
-	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version())
+	slog.Info("kubeup", "version", version, "commit", commit, "date", date, "builtBy", builtBy, "goVersion", runtime.Version(), "goMaxProcs", runtime.GOMAXPROCS(0))
 	if cfg.Debug {
 		slog.Warn("debug logging enabled")
 	}
