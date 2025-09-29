@@ -7,10 +7,10 @@ on:
     branches:
       - 'main'
     paths:
-      - "./**/*.go"
-      - "./go.mod"
-      - "./go.sum"
-      - "./Dockerfile"
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
+      - "Dockerfile"
 
 jobs:
   build:
