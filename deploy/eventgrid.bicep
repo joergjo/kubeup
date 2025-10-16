@@ -10,7 +10,7 @@ param appId string
 
 var enableEntraId = appId != '' 
 
-resource aks 'Microsoft.ContainerService/managedClusters@2025-03-01' existing = {
+resource aks 'Microsoft.ContainerService/managedClusters@2025-07-01' existing = {
   name: aksName
 }
 
