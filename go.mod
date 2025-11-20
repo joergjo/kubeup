@@ -9,7 +9,7 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/go-mail/mail/v2 v2.3.0
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	go.uber.org/zap/exp v0.3.0
 )
 
