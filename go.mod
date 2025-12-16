@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents v1.0.0
-	github.com/auth0/go-jwt-middleware/v2 v2.3.0
+	github.com/auth0/go-jwt-middleware/v2 v2.3.1
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/go-mail/mail/v2 v2.3.0
@@ -22,10 +22,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
