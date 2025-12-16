@@ -49,8 +49,9 @@ func validateRequestOrigin(origin string, allowed []string) (string, bool) {
 		if ao == "*" {
 			return ao, true
 		}
-		if strings.HasPrefix(origin, ao) {
-			return ao, true
+		o := strings.TrimSpace(ao)
+		if o == origin {
+			return o, true
 		}
 	}
 	return origin, false
