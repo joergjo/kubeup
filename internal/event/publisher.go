@@ -23,7 +23,7 @@ func (p *Publisher) Publish(m Message) error {
 	var result error
 	for _, fn := range p.publisherFns {
 		if err := fn(m); err != nil {
-			result = errors.Join(err)
+			result = errors.Join(result, err)
 		}
 	}
 	return result
@@ -75,7 +75,7 @@ func newSendGridPublisher(s sendgridOptions, e emailOptions) PublisherFunc {
 		if err != nil {
 			return err
 		}
-		if res.StatusCode < 200 && res.StatusCode >= 300 {
+		if res.StatusCode < 200 || res.StatusCode >= 300 {
 			return fmt.Errorf("unexpected SendGrid HTTP status code %d, response %q", res.StatusCode, res.Body)
 		}
 		slog.Debug("SendGrid notification successfully sent", "email", to.Address)
