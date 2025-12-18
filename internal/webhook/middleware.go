@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -19,11 +20,13 @@ const accessTokenParam = "access_token"
 
 // newClientSecretMiddleware creates a middleware that validates the client secret in request query parameters.
 // It expects the secret in the "access_token" query parameter and validates it against two possible values (for rotation).
-func newClientSecretMiddleware(sec1, sec2 string) func(http.Handler) http.Handler {
+func newClientSecretMiddleware(key1, key2 string) func(http.Handler) http.Handler {
+	key1B := []byte(key1)
+	key2B := []byte(key2)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			secret := r.URL.Query().Get(accessTokenParam)
-			if secret != sec1 && secret != sec2 {
+			tokenB := []byte(r.URL.Query().Get(accessTokenParam))
+			if subtle.ConstantTimeCompare(key1B, tokenB) != 1 && subtle.ConstantTimeCompare(key2B, tokenB) != 1 {
 				slog.Warn("received request with invalid secret")
 				http.Error(w, "invalid secret", http.StatusUnauthorized)
 				return
