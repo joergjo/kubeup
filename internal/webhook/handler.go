@@ -1,9 +1,7 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -141,13 +139,12 @@ func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.P
 	return cloudevents.NewHTTPResult(http.StatusOK, "")
 }
 
-// unmarshal deserializes the CloudEvent data into the appropriate event type.
-// Uses strict JSON decoding to ensure the data matches the expected structure.
+// unmarshal maps the CloudEvent data into the appropriate event type.
+// Relies on every event's UnmarshalJSON method to ensure the data matches the
+// expected structure.
 func unmarshal[T event.ContainerServiceEvent](e cloudevents.Event) (T, error) {
 	var data T
-	dec := json.NewDecoder(bytes.NewReader(e.DataEncoded))
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&data); err != nil {
+	if err := e.DataAs(&data); err != nil {
 		return data, err
 	}
 	return data, nil

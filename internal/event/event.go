@@ -1,7 +1,10 @@
 package event
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents"
@@ -22,6 +25,38 @@ func (e ContainerServiceNewKubernetesVersionAvailableEvent) String() string {
 	b.WriteString(fmt.Sprintf("Lowest minor version: %s\n", *e.LowestMinorKubernetesVersion))
 	b.WriteString(fmt.Sprintf("Latest preview version: %s", *e.LatestPreviewKubernetesVersion))
 	return b.String()
+}
+
+func (e *ContainerServiceNewKubernetesVersionAvailableEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceNewKubernetesVersionAvailableEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.LatestSupportedKubernetesVersion == nil {
+		return fmt.Errorf("missing required field: latestSupportedKubernetesVersion")
+	}
+	if in.LatestStableKubernetesVersion == nil {
+		return fmt.Errorf("missing required field: latestStableKubernetesVersion")
+	}
+	if in.LowestMinorKubernetesVersion == nil {
+		return fmt.Errorf("missing required field: lowestMinorKubernetesVersion")
+	}
+	if in.LatestPreviewKubernetesVersion == nil {
+		return fmt.Errorf("missing required field: latestPreviewKubernetesVersion")
+	}
+
+	e.ContainerServiceNewKubernetesVersionAvailableEventData =
+		azsystemevents.ContainerServiceNewKubernetesVersionAvailableEventData(in)
+	return nil
 }
 
 // NewContainerServiceNewKubernetesVersionAvailableEvent creates a new event for Kubernetes version availability notifications.
@@ -57,6 +92,29 @@ func NewContainerServiceClusterSupportEndingEvent(version string) ContainerServi
 	}
 }
 
+func (e *ContainerServiceClusterSupportEndingEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceClusterSupportEndingEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.KubernetesVersion == nil {
+		return fmt.Errorf("missing required field: kubernetesVersion")
+	}
+
+	e.ContainerServiceClusterSupportEndingEventData =
+		azsystemevents.ContainerServiceClusterSupportEndingEventData(in)
+	return nil
+}
+
 // ContainerServiceClusterSupportEndedEvent is the event sent when support for a Kubernetes version has ended.
 type ContainerServiceClusterSupportEndedEvent struct {
 	azsystemevents.ContainerServiceClusterSupportEndedEventData
@@ -75,6 +133,29 @@ func NewContainerServiceClusterSupportEndedEvent(version string) ContainerServic
 			KubernetesVersion: &version,
 		},
 	}
+}
+
+func (e *ContainerServiceClusterSupportEndedEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceClusterSupportEndedEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.KubernetesVersion == nil {
+		return fmt.Errorf("missing required field: kubernetesVersion")
+	}
+
+	e.ContainerServiceClusterSupportEndedEventData =
+		azsystemevents.ContainerServiceClusterSupportEndedEventData(in)
+	return nil
 }
 
 // ContainerServiceClusterRollingEvent represents the commonality for node pool rolling events.
@@ -102,6 +183,29 @@ func NewContainerServiceNodePoolRollingStartedEvent(name string) ContainerServic
 	}
 }
 
+func (e *ContainerServiceNodePoolRollingStartedEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceNodePoolRollingStartedEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.NodePoolName == nil {
+		return fmt.Errorf("missing required field: nodePoolName")
+	}
+
+	e.ContainerServiceNodePoolRollingStartedEventData =
+		azsystemevents.ContainerServiceNodePoolRollingStartedEventData(in)
+	return nil
+}
+
 // ContainerServiceNodePoolRollingSucceededEvent is the event sent when a node pool rolling upgrade has succeeded.
 type ContainerServiceNodePoolRollingSucceededEvent struct {
 	azsystemevents.ContainerServiceNodePoolRollingSucceededEventData
@@ -122,6 +226,29 @@ func NewContainerServiceNodePoolRollingSucceededEvent(name string) ContainerServ
 	}
 }
 
+func (e *ContainerServiceNodePoolRollingSucceededEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceNodePoolRollingSucceededEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.NodePoolName == nil {
+		return fmt.Errorf("missing required field: nodePoolName")
+	}
+
+	e.ContainerServiceNodePoolRollingSucceededEventData =
+		azsystemevents.ContainerServiceNodePoolRollingSucceededEventData(in)
+	return nil
+}
+
 // ContainerServiceNodePoolRollingFailedEvent is the event sent when a node pool rolling upgrade has failed.
 type ContainerServiceNodePoolRollingFailedEvent struct {
 	azsystemevents.ContainerServiceNodePoolRollingFailedEventData
@@ -140,6 +267,29 @@ func NewContainerServiceNodePoolRollingFailedEvent(name string) ContainerService
 			NodePoolName: &name,
 		},
 	}
+}
+
+func (e *ContainerServiceNodePoolRollingFailedEvent) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.DisallowUnknownFields()
+
+	type alias azsystemevents.ContainerServiceNodePoolRollingFailedEventData
+	var in alias
+
+	if err := dec.Decode(&in); err != nil {
+		return err
+	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return fmt.Errorf("invalid JSON: trailing data")
+	}
+
+	if in.NodePoolName == nil {
+		return fmt.Errorf("missing required field: nodePoolName")
+	}
+
+	e.ContainerServiceNodePoolRollingFailedEventData =
+		azsystemevents.ContainerServiceNodePoolRollingFailedEventData(in)
+	return nil
 }
 
 // ContainerServiceEvent is the constraint set of all possible events.
