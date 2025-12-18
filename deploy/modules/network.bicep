@@ -4,7 +4,7 @@ param namePrefix string
 @description('Specifies the location to deploy to.')
 param location string
 
-resource vnet 'Microsoft.Network/virtualNetworks@2024-10-01' = {
+resource vnet 'Microsoft.Network/virtualNetworks@2025-01-01' = {
   name: '${namePrefix}-vnet'
   location: location
   properties: {
@@ -18,6 +18,14 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-10-01' = {
         name: 'infrastructure'
         properties: {
           addressPrefix: '10.150.0.0/23'
+          delegations: [
+            {
+              name: 'Microsoft.App/environments'
+              properties: {
+                serviceName: 'Microsoft.App/environments'
+              }
+            }
+          ]
           networkSecurityGroup: {
             id: nsg.id
           }
@@ -27,7 +35,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-10-01' = {
   }
 }
 
-resource nsg 'Microsoft.Network/networkSecurityGroups@2024-10-01' = {
+resource nsg 'Microsoft.Network/networkSecurityGroups@2025-01-01' = {
   name: '${namePrefix}-default-nsg'
   location: location
   properties: {
