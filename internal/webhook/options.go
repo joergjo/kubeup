@@ -29,7 +29,7 @@ type Options func(options *options) error
 // WithClientSecret configures the webhook to use a specific client secret.
 func WithClientSecret(sec1, sec2 string) Options {
 	return func(options *options) error {
-		if sec1 == "" && sec2 == "" {
+		if sec1 == "" || sec2 == "" {
 			return errors.New("two client secrets required")
 		}
 		options.clientSecret = &clientSecretOptions{secret1: sec1, secret2: sec2}
