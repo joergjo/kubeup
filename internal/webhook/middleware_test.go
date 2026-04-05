@@ -109,10 +109,10 @@ func TestAccessTokenMiddleware(t *testing.T) {
 			mw := newEntraIDMiddleware(v)(h)
 			req := httptest.NewRequest(http.MethodOptions, "/webhook", nil)
 			req.Header.Set("WebHook-Request-Origin", origin)
-			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", validToken))
+			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tc.token))
 			res := httptest.NewRecorder()
 			mw.ServeHTTP(res, req)
-			if res.Result().StatusCode != http.StatusOK {
+			if res.Result().StatusCode != tc.status {
 				t.Errorf("Want status code %d, got %d", http.StatusOK, res.Result().StatusCode)
 			}
 		})
