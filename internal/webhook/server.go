@@ -42,11 +42,13 @@ func NewServer(handler http.Handler, opts ...Options) (*http.Server, error) {
 		w.Write([]byte("OK"))
 	})
 	s := http.Server{
-		Addr:         fmt.Sprintf(":%d", options.port),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  120 * time.Second,
-		Handler:      mux,
+		Addr:              fmt.Sprintf(":%d", options.port),
+		ReadTimeout:       5 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		MaxHeaderBytes:    1 << 15, // 32KB
+		Handler:           mux,
 	}
 	return &s, nil
 }
