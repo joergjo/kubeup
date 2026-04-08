@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents v1.0.0
 	github.com/auth0/go-jwt-middleware/v2 v2.3.1
-	github.com/caarlos0/env/v11 v11.3.1
+	github.com/caarlos0/env/v11 v11.4.0
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/go-mail/mail/v2 v2.3.0
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
