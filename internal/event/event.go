@@ -158,11 +158,6 @@ func (e *ContainerServiceClusterSupportEndedEvent) UnmarshalJSON(b []byte) error
 	return nil
 }
 
-// ContainerServiceClusterRollingEvent represents the commonality for node pool rolling events.
-type ContainerServiceClusterRollingEvent struct {
-	NodePoolName string `json:"nodePoolName"`
-}
-
 // ContainerServiceNodePoolRollingStartedEvent is the event sent when a node pool rolling upgrade has started.
 type ContainerServiceNodePoolRollingStartedEvent struct {
 	azsystemevents.ContainerServiceNodePoolRollingStartedEventData
