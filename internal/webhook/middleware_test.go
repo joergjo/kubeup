@@ -113,7 +113,7 @@ func TestAccessTokenMiddleware(t *testing.T) {
 			res := httptest.NewRecorder()
 			mw.ServeHTTP(res, req)
 			if res.Result().StatusCode != tc.status {
-				t.Errorf("Want status code %d, got %d", http.StatusOK, res.Result().StatusCode)
+				t.Errorf("Want status code %d, got %d", tc.status, res.Result().StatusCode)
 			}
 		})
 	}
