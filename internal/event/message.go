@@ -3,8 +3,6 @@ package event
 import (
 	"bytes"
 	"html/template"
-
-	"github.com/joergjo/kubeup/internal/templates"
 )
 
 // Message represents a message.
@@ -20,8 +18,7 @@ type MessageBuilder[T ContainerServiceEvent] struct {
 }
 
 // NewMessageBuilder creates a new MessageBuilder with the given template filename.
-func NewMessageBuilder[T ContainerServiceEvent](filename string) MessageBuilder[T] {
-	tmpl := template.Must(template.ParseFS(templates.FS, filename))
+func NewMessageBuilder[T ContainerServiceEvent](tmpl *template.Template) MessageBuilder[T] {
 	return MessageBuilder[T]{tmpl: tmpl}
 }
 

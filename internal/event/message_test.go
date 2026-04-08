@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/joergjo/kubeup/internal/event"
+	"github.com/joergjo/kubeup/internal/templates"
 )
 
 func TestTemplates(t *testing.T) {
@@ -66,10 +67,14 @@ func TestTemplates(t *testing.T) {
 }
 
 // testTypedTemplate is a generic helper function to test each template
-func testTypedTemplate[T event.ContainerServiceEvent](t *testing.T, templ string, e T, src string) {
-	mb := event.NewMessageBuilder[T](templ)
-	_, err := mb.Build(e, src)
+func testTypedTemplate[T event.ContainerServiceEvent](t *testing.T, name string, e T, src string) {
+	tmpls, err := templates.Build(name)
 	if err != nil {
-		t.Fatalf("Expected nil err for template %s, got: %v", templ, err)
+		t.Fatalf("Error parsing template %s: %v", name, err)
+	}
+	mb := event.NewMessageBuilder[T](tmpls[name])
+	_, err = mb.Build(e, src)
+	if err != nil {
+		t.Fatalf("Expected nil err for template %s, got: %v", name, err)
 	}
 }

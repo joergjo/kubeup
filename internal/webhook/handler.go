@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"context"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -12,11 +13,23 @@ import (
 	"github.com/cloudevents/sdk-go/v2/protocol"
 	cehttp "github.com/cloudevents/sdk-go/v2/protocol/http"
 	"github.com/joergjo/kubeup/internal/event"
+	"github.com/joergjo/kubeup/internal/templates"
 )
 
 const (
 	// AzureEventGridOrigin represents the origin string for Azure Event Grid.
 	AzureEventGridOrigin = "eventgrid.azure.net"
+)
+
+var (
+	templateFiles = []string{
+		"new-kubernetes-version.gohtml",
+		"cluster-support-ending.gohtml",
+		"cluster-support-ended.gohtml",
+		"nodepool-rolling-started.gohtml",
+		"nodepool-rolling-succeeded.gohtml",
+		"nodepool-rolling-failed.gohtml",
+	}
 )
 
 // NewCloudEventHandler creates a new CloudEvent handler with the given Publisher.
@@ -93,21 +106,22 @@ func newOptionsHandler(methods []string, rate int, origins []string) http.Handle
 // newEventReceiver creates a function that processes CloudEvents.
 // It handles different event types from Azure Kubernetes Service and publishes them using the provided publisher.
 func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Event) protocol.Result {
+	tmpls := templates.MustBuild(templateFiles...)
 	return func(ctx context.Context, e cloudevents.Event) protocol.Result {
 		slog.Info("received event", "id", e.ID())
 		switch e.Type() {
 		case azsystemevents.TypeContainerServiceNewKubernetesVersionAvailable: //event.EventNewKubernetesVersionAvailable:
-			return publishEvent[event.ContainerServiceNewKubernetesVersionAvailableEvent](e, p, "new-kubernetes-version.gohtml")
+			return publishEvent[event.ContainerServiceNewKubernetesVersionAvailableEvent](e, p, tmpls["new-kubernetes-version.gohtml"])
 		case azsystemevents.TypeContainerServiceClusterSupportEnding: // event.EventClusterSupportEnding:
-			return publishEvent[event.ContainerServiceClusterSupportEndingEvent](e, p, "cluster-support-ending.gohtml")
+			return publishEvent[event.ContainerServiceClusterSupportEndingEvent](e, p, tmpls["cluster-support-ending.gohtml"])
 		case azsystemevents.TypeContainerServiceClusterSupportEnded: // event.EventClusterSupportEnded:
-			return publishEvent[event.ContainerServiceClusterSupportEndedEvent](e, p, "cluster-support-ended.gohtml")
+			return publishEvent[event.ContainerServiceClusterSupportEndedEvent](e, p, tmpls["cluster-support-ended.gohtml"])
 		case azsystemevents.TypeContainerServiceNodePoolRollingStarted: // event.EventNodePoolRollingStarted:
-			return publishEvent[event.ContainerServiceNodePoolRollingStartedEvent](e, p, "nodepool-rolling-started.gohtml")
+			return publishEvent[event.ContainerServiceNodePoolRollingStartedEvent](e, p, tmpls["nodepool-rolling-started.gohtml"])
 		case azsystemevents.TypeContainerServiceNodePoolRollingSucceeded: //event.EventNodePoolRollingSucceeded:
-			return publishEvent[event.ContainerServiceNodePoolRollingSucceededEvent](e, p, "nodepool-rolling-succeeded.gohtml")
+			return publishEvent[event.ContainerServiceNodePoolRollingSucceededEvent](e, p, tmpls["nodepool-rolling-succeeded.gohtml"])
 		case azsystemevents.TypeContainerServiceNodePoolRollingFailed: // event.EventNodePoolRollingFailed:
-			return publishEvent[event.ContainerServiceNodePoolRollingFailedEvent](e, p, "nodepool-rolling-failed.gohtml")
+			return publishEvent[event.ContainerServiceNodePoolRollingFailedEvent](e, p, tmpls["nodepool-rolling-failed.gohtml"])
 		case azsystemevents.TypeSubscriptionDeleted: // event.EventSubscriptionDeleted:
 			slog.Warn("event subscription deleted", "resource", e.Source())
 			return cloudevents.NewHTTPResult(http.StatusOK, "")
@@ -120,13 +134,13 @@ func newEventReceiver(p *event.Publisher) func(context.Context, cloudevents.Even
 
 // publishEvent processes a specific type of CloudEvent, creates a message using the appropriate template,
 // and publishes it using the event publisher. Returns an HTTP result indicating success or failure.
-func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.Publisher, filename string) protocol.Result {
+func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.Publisher, tmpl *template.Template) protocol.Result {
 	ce, err := unmarshal[T](e)
 	if err != nil {
 		slog.Error("deserializing event", "error", err, "type", e.Type())
 		return cloudevents.NewHTTPResult(http.StatusBadRequest, "invalid %s data", e.Type())
 	}
-	mb := event.NewMessageBuilder[T](filename)
+	mb := event.NewMessageBuilder[T](tmpl)
 	msg, err := mb.Build(ce, e.Source())
 	if err != nil {
 		slog.Error("building message", "error", err)
