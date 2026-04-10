@@ -30,7 +30,7 @@ func Build(tmplFiles ...string) (map[string]*template.Template, error) {
 	for _, filename := range tmplFiles {
 		var err error
 		if tmpls[filename], err = template.ParseFS(FS, filename); err != nil {
-			allErrs = errors.Join(err, allErrs)
+			allErrs = errors.Join(allErrs, err)
 		}
 	}
 	return tmpls, allErrs

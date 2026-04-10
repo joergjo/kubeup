@@ -20,13 +20,13 @@ type Publisher struct {
 
 // Publish sends a message to all registered publishers.
 func (p *Publisher) Publish(m Message) error {
-	var result error
+	var allErrs error
 	for _, fn := range p.publisherFns {
 		if err := fn(m); err != nil {
-			result = errors.Join(result, err)
+			allErrs = errors.Join(allErrs, err)
 		}
 	}
-	return result
+	return allErrs
 }
 
 // NewPublisher creates a new Publisher with the given options.
