@@ -26,7 +26,10 @@ func NewServer(handler http.Handler, opts ...Options) (*http.Server, error) {
 		if err != nil {
 			return nil, fmt.Errorf("creating JWT validator: %w", err)
 		}
-		mw := newEntraIDMiddleware(v)
+		mw, err := newEntraIDMiddleware(v)
+		if err != nil {
+			return nil, fmt.Errorf("creating JWT middleware: %w", err)
+		}
 		mux.Handle(options.path, mw(handler))
 		slog.Info("using EntraID middleware")
 	case options.clientSecret != nil:

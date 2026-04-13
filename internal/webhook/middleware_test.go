@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/auth0/go-jwt-middleware/v3/validator"
 	"github.com/joergjo/kubeup/internal/event"
 )
 
@@ -106,12 +106,15 @@ func TestAccessTokenMiddleware(t *testing.T) {
 				t.Fatalf("Error creating handler: %v", err)
 			}
 			v, _ := newTestValidator(issuer, audience, signingKey)
-			mw := newEntraIDMiddleware(v)(h)
+			mw, err := newEntraIDMiddleware(v)
+			if err != nil {
+				t.Errorf("Error creating middleware: %v", err)
+			}
 			req := httptest.NewRequest(http.MethodOptions, "/webhook", nil)
 			req.Header.Set("WebHook-Request-Origin", origin)
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tc.token))
 			res := httptest.NewRecorder()
-			mw.ServeHTTP(res, req)
+			mw(h).ServeHTTP(res, req)
 			if res.Result().StatusCode != tc.status {
 				t.Errorf("Want status code %d, got %d", tc.status, res.Result().StatusCode)
 			}
@@ -120,17 +123,18 @@ func TestAccessTokenMiddleware(t *testing.T) {
 }
 
 func newTestValidator(iss, aud, key string) (*validator.Validator, error) {
-	return validator.New(
-		func(ctx context.Context) (any, error) {
+	v, err := validator.New(validator.WithAlgorithm(validator.HS256),
+		validator.WithIssuer(iss),
+		validator.WithAudience(aud),
+		validator.WithKeyFunc(func(ctx context.Context) (any, error) {
 			return []byte(key), nil
-		},
-		validator.HS256,
-		iss,
-		[]string{aud},
-		validator.WithCustomClaims(
-			func() validator.CustomClaims {
-				return &roleClaims{}
-			},
-		),
+		}),
+		validator.WithCustomClaims(func() validator.CustomClaims {
+			return &roleClaims{}
+		}),
 		validator.WithAllowedClockSkew(time.Minute))
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
 }

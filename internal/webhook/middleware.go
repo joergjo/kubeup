@@ -10,9 +10,9 @@ import (
 	"slices"
 	"time"
 
-	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
-	"github.com/auth0/go-jwt-middleware/v2/jwks"
-	"github.com/auth0/go-jwt-middleware/v2/validator"
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v3"
+	"github.com/auth0/go-jwt-middleware/v3/jwks"
+	"github.com/auth0/go-jwt-middleware/v3/validator"
 )
 
 // Defined in https://github.com/cloudevents/spec/blob/main/cloudevents/http-webhook.md#32-uri-query-parameter.
@@ -53,38 +53,37 @@ func (c roleClaims) Validate(ctx context.Context) error {
 
 // newEntraIDMiddleware creates a middleware that validates Entra ID JWT tokens.
 // It uses the provided validator to check token authenticity and required claims.
-func newEntraIDMiddleware(v *validator.Validator) func(http.Handler) http.Handler {
+func newEntraIDMiddleware(v *validator.Validator) (func(http.Handler) http.Handler, error) {
 	errorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
 		slog.Error("validating token", "error", err)
 		w.WriteHeader(http.StatusUnauthorized)
 	}
-
-	middleware := jwtmiddleware.New(
-		v.ValidateToken,
-		jwtmiddleware.WithErrorHandler(errorHandler),
-	)
-
-	return func(next http.Handler) http.Handler {
-		return middleware.CheckJWT(next)
+	mw, err := jwtmiddleware.New(jwtmiddleware.WithValidator(v),
+		jwtmiddleware.WithErrorHandler(errorHandler))
+	if err != nil {
+		return nil, err
 	}
+	return func(next http.Handler) http.Handler {
+		return mw.CheckJWT(next)
+	}, nil
 }
 
 // newValidator creates a new JWT validator for Entra ID tokens.
 // It validates token signature, issuer, audience, and custom role claims.
 func newValidator(iss *url.URL, aud string) (*validator.Validator, error) {
-	p := jwks.NewCachingProvider(iss, 5*time.Minute)
-	v, err := validator.New(
-		p.KeyFunc,
-		validator.RS256,
-		iss.String(),
-		[]string{aud},
-		validator.WithCustomClaims(
-			func() validator.CustomClaims {
-				return &roleClaims{}
-			},
-		),
-		validator.WithAllowedClockSkew(time.Minute),
-	)
+	p, err := jwks.NewCachingProvider(jwks.WithIssuerURL(iss),
+		jwks.WithCacheTTL(5*time.Minute))
+	if err != nil {
+		return nil, err
+	}
+	v, err := validator.New(validator.WithAlgorithm(validator.RS256),
+		validator.WithIssuer(iss.String()),
+		validator.WithAudience(aud),
+		validator.WithKeyFunc(p.KeyFunc),
+		validator.WithCustomClaims(func() validator.CustomClaims {
+			return &roleClaims{}
+		}),
+		validator.WithAllowedClockSkew(time.Minute))
 	if err != nil {
 		return nil, err
 	}
