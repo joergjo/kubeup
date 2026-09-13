@@ -63,12 +63,10 @@ func (e *ContainerServiceNewKubernetesVersionAvailableEvent) UnmarshalJSON(b []b
 // Parameters represent the different version numbers reported by Azure.
 func NewContainerServiceNewKubernetesVersionAvailableEvent(latestSupported, latestStable, lowestMinor, latestPreview string) ContainerServiceNewKubernetesVersionAvailableEvent {
 	return ContainerServiceNewKubernetesVersionAvailableEvent{
-		ContainerServiceNewKubernetesVersionAvailableEventData: azsystemevents.ContainerServiceNewKubernetesVersionAvailableEventData{
-			LatestSupportedKubernetesVersion: &latestSupported,
-			LatestStableKubernetesVersion:    &latestStable,
-			LowestMinorKubernetesVersion:     &lowestMinor,
-			LatestPreviewKubernetesVersion:   &latestPreview,
-		},
+		LatestSupportedKubernetesVersion: &latestSupported,
+		LatestStableKubernetesVersion:    &latestStable,
+		LowestMinorKubernetesVersion:     &lowestMinor,
+		LatestPreviewKubernetesVersion:   &latestPreview,
 	}
 }
 
@@ -86,9 +84,7 @@ func (e ContainerServiceClusterSupportEndingEvent) String() string {
 // The version parameter is the Kubernetes version for which support is ending.
 func NewContainerServiceClusterSupportEndingEvent(version string) ContainerServiceClusterSupportEndingEvent {
 	return ContainerServiceClusterSupportEndingEvent{
-		ContainerServiceClusterSupportEndingEventData: azsystemevents.ContainerServiceClusterSupportEndingEventData{
-			KubernetesVersion: &version,
-		},
+		KubernetesVersion: &version,
 	}
 }
 
@@ -129,9 +125,7 @@ func (e ContainerServiceClusterSupportEndedEvent) String() string {
 // The version parameter is the Kubernetes version for which support has ended.
 func NewContainerServiceClusterSupportEndedEvent(version string) ContainerServiceClusterSupportEndedEvent {
 	return ContainerServiceClusterSupportEndedEvent{
-		ContainerServiceClusterSupportEndedEventData: azsystemevents.ContainerServiceClusterSupportEndedEventData{
-			KubernetesVersion: &version,
-		},
+		KubernetesVersion: &version,
 	}
 }
 
@@ -172,9 +166,7 @@ func (e ContainerServiceNodePoolRollingStartedEvent) String() string {
 // The name parameter is the name of the node pool being upgraded.
 func NewContainerServiceNodePoolRollingStartedEvent(name string) ContainerServiceNodePoolRollingStartedEvent {
 	return ContainerServiceNodePoolRollingStartedEvent{
-		ContainerServiceNodePoolRollingStartedEventData: azsystemevents.ContainerServiceNodePoolRollingStartedEventData{
-			NodePoolName: &name,
-		},
+		NodePoolName: &name,
 	}
 }
 
@@ -215,9 +207,7 @@ func (e ContainerServiceNodePoolRollingSucceededEvent) String() string {
 // The name parameter is the name of the node pool that was successfully upgraded.
 func NewContainerServiceNodePoolRollingSucceededEvent(name string) ContainerServiceNodePoolRollingSucceededEvent {
 	return ContainerServiceNodePoolRollingSucceededEvent{
-		ContainerServiceNodePoolRollingSucceededEventData: azsystemevents.ContainerServiceNodePoolRollingSucceededEventData{
-			NodePoolName: &name,
-		},
+		NodePoolName: &name,
 	}
 }
 
@@ -258,9 +248,7 @@ func (e ContainerServiceNodePoolRollingFailedEvent) String() string {
 // The name parameter is the name of the node pool whose upgrade failed.
 func NewContainerServiceNodePoolRollingFailedEvent(name string) ContainerServiceNodePoolRollingFailedEvent {
 	return ContainerServiceNodePoolRollingFailedEvent{
-		ContainerServiceNodePoolRollingFailedEventData: azsystemevents.ContainerServiceNodePoolRollingFailedEventData{
-			NodePoolName: &name,
-		},
+		NodePoolName: &name,
 	}
 }
 
