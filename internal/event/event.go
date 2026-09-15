@@ -1,8 +1,8 @@
 package event
 
 import (
-	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"strings"
@@ -27,17 +27,15 @@ func (e ContainerServiceNewKubernetesVersionAvailableEvent) String() string {
 	return b.String()
 }
 
-func (e *ContainerServiceNewKubernetesVersionAvailableEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceNewKubernetesVersionAvailableEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceNewKubernetesVersionAvailableEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	// An unfortunate side effect of embedding the azsystemevents struct is that we need to perform a case-insensitive unmarshal, since these types do not have JSON tags.
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 
@@ -88,17 +86,14 @@ func NewContainerServiceClusterSupportEndingEvent(version string) ContainerServi
 	}
 }
 
-func (e *ContainerServiceClusterSupportEndingEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceClusterSupportEndingEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceClusterSupportEndingEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 
@@ -129,17 +124,14 @@ func NewContainerServiceClusterSupportEndedEvent(version string) ContainerServic
 	}
 }
 
-func (e *ContainerServiceClusterSupportEndedEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceClusterSupportEndedEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceClusterSupportEndedEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 
@@ -170,17 +162,14 @@ func NewContainerServiceNodePoolRollingStartedEvent(name string) ContainerServic
 	}
 }
 
-func (e *ContainerServiceNodePoolRollingStartedEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceNodePoolRollingStartedEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceNodePoolRollingStartedEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 
@@ -211,17 +200,14 @@ func NewContainerServiceNodePoolRollingSucceededEvent(name string) ContainerServ
 	}
 }
 
-func (e *ContainerServiceNodePoolRollingSucceededEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceNodePoolRollingSucceededEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceNodePoolRollingSucceededEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 
@@ -252,17 +238,14 @@ func NewContainerServiceNodePoolRollingFailedEvent(name string) ContainerService
 	}
 }
 
-func (e *ContainerServiceNodePoolRollingFailedEvent) UnmarshalJSON(b []byte) error {
-	dec := json.NewDecoder(bytes.NewReader(b))
-	dec.DisallowUnknownFields()
-
+func (e *ContainerServiceNodePoolRollingFailedEvent) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
 	type alias azsystemevents.ContainerServiceNodePoolRollingFailedEventData
 	var in alias
 
-	if err := dec.Decode(&in); err != nil {
+	if err := json.UnmarshalDecode(dec, &in, json.RejectUnknownMembers(true), json.MatchCaseInsensitiveNames(true)); err != nil {
 		return err
 	}
-	if err := dec.Decode(&struct{}{}); err != io.EOF {
+	if err := json.UnmarshalDecode(dec, &struct{}{}); err != io.EOF {
 		return fmt.Errorf("invalid JSON: trailing data")
 	}
 

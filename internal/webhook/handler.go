@@ -154,7 +154,7 @@ func publishEvent[T event.ContainerServiceEvent](e cloudevents.Event, p *event.P
 }
 
 // unmarshal maps the CloudEvent data into the appropriate event type.
-// Relies on every event's UnmarshalJSON method to ensure the data matches the
+// Relies on every event's UnmarshalJSONFrom method to ensure the data matches the
 // expected structure.
 func unmarshal[T event.ContainerServiceEvent](e cloudevents.Event) (T, error) {
 	var data T
