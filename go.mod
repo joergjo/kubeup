@@ -3,7 +3,7 @@ module github.com/joergjo/kubeup
 go 1.27.1
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents v1.0.0
+	github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/azsystemevents v1.1.0
 	github.com/auth0/go-jwt-middleware/v3 v3.3.0
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/cloudevents/sdk-go/v2 v2.16.2
@@ -14,8 +14,8 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.2 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.13.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -33,10 +33,10 @@ require (
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/mail.v2 v2.3.1 // indirect
 )
