@@ -40,11 +40,9 @@ To deploy `kubeup` to Microsoft Azure:
 4. **[Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)** - For deploying Bicep templates
 5. **[Bicep CLI](https://learn.microsoft.com/azure/azure-resource-manager/bicep/install#azure-cli)** - Install with `az bicep install`
 6. **Email service** (optional) - [Twilio SendGrid account](https://sendgrid.com/pricing/) or SMTP access for email notifications
-7. **[Microsoft Graph CLI](https://github.com/microsoftgraph/msgraph-cli)** (optional) - Required only for Entra ID authorization
+7. **[jq](https://jqlang.org/download/)** and **`uuidgen`** (optional) - Required for Entra ID setup. macOS includes `uuidgen`; on Linux it is commonly provided by the `uuid-runtime` package.
 
-**Note:** The Microsoft Graph CLI was deprecated in July 2024 but remains functional for our needs. For PowerShell users, refer to [this Azure Event Grid script](https://learn.microsoft.com/azure/event-grid/scripts/powershell-webhook-secure-delivery-microsoft-entra-app#sample-script---stable).
-
-Alternatively, use [Azure Cloud Shell](https://shell.azure.com), which has all required tools except Microsoft Graph CLI. Follow the [Linux installation steps](https://learn.microsoft.com/graph/cli/installation?tabs=linux) to install `mgc` in Cloud Shell.
+Alternatively, use the Bash environment in [Azure Cloud Shell](https://shell.azure.com). Entra ID setup uses Azure CLI's `az rest` command to call Microsoft Graph v1.0; no separate Graph command-line tool is required.
 
 ## Deployment steps
 
@@ -78,15 +76,18 @@ task deploy:azure
 ```
 
 #### Deploy with Entra ID authorization
-Requires `Application Developer` role or higher in Entra ID, unless your tenant allows all users to register applications.
-
-Sign in to Microsoft Graph CLI:
+Sign in interactively to Azure CLI in the tenant containing the webhook and Event Grid subscription:
 ```bash
 tenant_id="Your Entra ID tenant ID"
-mgc login --tenant-id $tenant_id --scopes "Application.ReadWrite.All User.Read"
+az login --tenant "$tenant_id"
+az account show --query '{tenant:tenantId, subscription:id, identity:user.type}'
 ```
 
-**Note:** `Application.ReadWrite.All` requires administrator consent. Ask an Entra ID administrator to grant this scope for your user or the entire tenant.
+The script uses the active Azure CLI login for Microsoft Graph requests and accepts only a signed-in user, not a service-principal or managed-identity login. Select the correct subscription with `az account set --subscription <subscription-id>` before deployment. If you use a separate `AZURE_CONFIG_DIR`, use the same context for login and deployment.
+
+**Entra permissions:** Azure subscription Contributor/Owner permissions do not grant directory permissions. The complete setup creates applications and service principals, updates app roles, and grants the webhook role to both your user and Event Grid. `Application Developer` alone is not sufficient for all of these operations. An Entra administrator should verify that your user has a supported role, such as Application Administrator or Cloud Application Administrator, and that tenant policies permit these actions.
+
+Microsoft Graph's [role-assignment API](https://learn.microsoft.com/graph/api/serviceprincipal-post-approleassignedto?view=graph-rest-1.0) also requires delegated authorization for `AppRoleAssignment.ReadWrite.All` and application read/write access; application updates require `Application.ReadWrite.All`, and `/me` requires user-read access. Azure CLI obtains its own Graph token automatically: signing in is not a way to grant arbitrary Graph permissions or administrator consent. If a request is forbidden, ask your Entra administrator to review both directory privileges and the Azure CLI client's Graph authorization.
 
 Deploy everything:
 ```bash
@@ -98,7 +99,13 @@ Creates required Entra ID objects and role assignments. Same prerequisites as ab
 
 ```bash
 task deploy:entraid
-```### Verification 
+```
+
+Setup saves the application ID to the repository-root `.env.entraid` only after both role assignments succeed. Subsequent runs reuse that file without Graph calls. Failures return a nonzero exit code, with diagnostics on stderr and progress in `deploy/entraid.log`. To resume an interrupted setup without creating another application, run `./entraid.sh <application-client-id>` from `deploy/`. Existing principals and assignments are reused, and unrelated app roles are preserved.
+
+Setup currently targets the public Azure cloud and interactive user authentication only.
+
+### Verification
 After `kubeup` has been deployed, it may take some time before you will receive notifications, depending on when new Kubernetes version become available or when you upgrade your cluster to a newer Kubernetes version. 
 
 If you want to test `kubeup` right away, trigger a Kubernetes update to the latest version offered by AKS and check the logs. 
