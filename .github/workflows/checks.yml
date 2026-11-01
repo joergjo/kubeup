@@ -1,0 +1,43 @@
+name: Application and deployment checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Install pinned deployment check tools
+        env:
+          BATS_VERSION: 1.14.0
+          SHELLCHECK_VERSION: 0.11.0
+          BICEP_VERSION: v0.38.33
+        run: |
+          set -euo pipefail
+          go install github.com/go-task/task/v3/cmd/task@v3.45.5
+          curl --fail --location --silent --show-error "https://github.com/bats-core/bats-core/archive/refs/tags/v${BATS_VERSION}.tar.gz" -o "$RUNNER_TEMP/bats.tar.gz"
+          tar -xzf "$RUNNER_TEMP/bats.tar.gz" -C "$RUNNER_TEMP"
+          sudo "$RUNNER_TEMP/bats-core-${BATS_VERSION}/install.sh" /usr/local
+          curl --fail --location --silent --show-error "https://github.com/koalaman/shellcheck/releases/download/v${SHELLCHECK_VERSION}/shellcheck-v${SHELLCHECK_VERSION}.linux.x86_64.tar.xz" -o "$RUNNER_TEMP/shellcheck.tar.xz"
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          sudo install "$RUNNER_TEMP/shellcheck-v${SHELLCHECK_VERSION}/shellcheck" /usr/local/bin/shellcheck
+          az bicep install --version "$BICEP_VERSION"
+      - run: task deploy:test deploy:contract deploy:lint

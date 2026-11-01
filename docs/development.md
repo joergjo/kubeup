@@ -22,11 +22,26 @@ task
 ```
 
 ### Run tests
-Executes all Go tests:
+Executes application/package Go tests. These tests do not read deployment files or require Bash, jq, Azure CLI, or other deployment tools:
 
 ```bash
 task go:test
 ```
+
+Deployment checks are separate:
+
+| Command | Purpose | Additional tools |
+| --- | --- | --- |
+| `task deploy:test` | Bats tests of deployment scripts with isolated CLI mocks | Bash, Bats-core, jq |
+| `task deploy:contract` | Explicit Go contract check between Bicep variables and application configuration tags | Go |
+| `task deploy:lint` | ShellCheck and offline Bicep build/lint | ShellCheck, Azure CLI, Bicep |
+| `task check` | All application and deployment checks | All of the above |
+
+Install [Bats-core](https://github.com/bats-core/bats-core), [ShellCheck](https://www.shellcheck.net/), and jq with `brew install bats-core shellcheck jq` on macOS or `sudo apt-get install bats shellcheck jq` on Debian/Ubuntu. Install Bicep with `az bicep install`. Windows users should run deployment checks in WSL or another Bash environment. Check tasks report missing tools rather than installing or silently skipping them.
+
+Script tests live in `deploy/tests`; they use temporary workspaces and mock `az`, `uuidgen`, and `sleep`. They do not call Azure or use developer credentials. The environment-variable contract lives in `deploy/tests/contract` behind the `deployment_contract` build tag, so ordinary `go test ./...` does not run it. It parses application configuration tags without importing or exporting application internals.
+
+GitHub Actions runs application tests and deployment checks in separate jobs on pull requests and pushes to `main`, without cloud credentials. Deployment jobs install pinned tool versions; local package-manager versions may differ.
 
 ### Build executable
 Compiles source code to a platform-specific executable:
