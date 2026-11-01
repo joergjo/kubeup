@@ -95,8 +95,8 @@ func WithSMTP(host string, port int, username string, password string) Options {
 		if host == "" {
 			return errors.New("SMTP host required")
 		}
-		if port == 0 {
-			return errors.New("SMTP port required")
+		if port <= 0 || port > 65535 {
+			return errors.New("SMTP port must be between 1 and 65535")
 		}
 		if username == "" {
 			return errors.New("SMTP username required")

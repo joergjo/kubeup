@@ -49,7 +49,7 @@ func (c config) HasEmail() bool {
 }
 
 func (c config) HasSMTP() bool {
-	return c.SMTPHost != "" && c.SMTPPort > 0 && c.SMTPUsername != "" && c.SMTPPassword != ""
+	return c.SMTPHost != "" || c.SMTPUsername != "" || c.SMTPPassword != ""
 }
 
 func (c config) HasSendGrid() bool {
