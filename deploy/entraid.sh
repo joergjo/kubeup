@@ -53,7 +53,9 @@ ensure_assignment() {
         echo "$response" | jq -e '.value | arrays' >/dev/null
         if echo "$response" | jq -e --arg principal "$principal_id" --arg role "$app_role_id" \
             --arg resource "$webhook_sp_id" \
-            '.value[] | select(.principalId == $principal and .appRoleId == $role and .resourceId == $resource)' >/dev/null; then
+            '.value[] | select((.principalId | ascii_downcase) == ($principal | ascii_downcase) and
+                (.appRoleId | ascii_downcase) == ($role | ascii_downcase) and
+                (.resourceId | ascii_downcase) == ($resource | ascii_downcase))' >/dev/null; then
             return
         fi
         next=$(echo "$response" | jq -r '."@odata.nextLink" // empty')
@@ -101,7 +103,7 @@ ensure_assignment() {
     app_roles=$(echo "$webhook_app" | jq -ce '.appRoles | arrays')
     app_role_id=$(echo "$app_roles" | jq -r --arg name "$role_name" '.[] | select(.value == $name) | .id')
     if [[ -z "$app_role_id" ]]; then
-        app_role_id=$(uuidgen)
+        app_role_id=$(uuidgen | tr '[:upper:]' '[:lower:]')
         body=$(echo "$app_roles" | jq --arg name "$role_name" --arg id "$app_role_id" \
             '{appRoles: (. + [{allowedMemberTypes: ["User", "Application"], description: "Azure Event Grid Role",
                 displayName: $name, id: $id, isEnabled: true, value: $name}])}')
@@ -109,13 +111,13 @@ ensure_assignment() {
     fi
     echo "$app_roles" | jq -e --arg name "$role_name" \
         '[.[] | select(.value == $name)] | length <= 1' >/dev/null
-    app_role_id=$(jq -n --arg id "$app_role_id" '{id: $id}' | required_id)
+    app_role_id=$(jq -n --arg id "$app_role_id" '{id: $id}' | required_id | tr '[:upper:]' '[:lower:]')
 
     # Wait for the application role to propagate to its service principal.
     for attempt in 1 2 3 4 5; do
         principal=$(graph GET "$graph_url/servicePrincipals/$webhook_sp_id")
         if echo "$principal" | jq -e --arg id "$app_role_id" \
-            '.appRoles[] | select(.id == $id and .isEnabled == true and
+            '.appRoles[] | select((.id | ascii_downcase) == $id and .isEnabled == true and
                 (.allowedMemberTypes | index("User")) != null and
                 (.allowedMemberTypes | index("Application")) != null)' >/dev/null; then
             break

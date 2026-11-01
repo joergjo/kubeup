@@ -17,7 +17,7 @@ const (
 	testWebhookSP   = "33333333-3333-3333-3333-333333333333"
 	testEventGridSP = "44444444-4444-4444-4444-444444444444"
 	testUserID      = "55555555-5555-5555-5555-555555555555"
-	testRoleID      = "66666666-6666-6666-6666-666666666666"
+	testRoleID      = "abcdefab-abcd-abcd-abcd-abcdefabcdef"
 )
 
 func TestEntraGraphSetup(t *testing.T) {
@@ -42,7 +42,7 @@ func TestEntraGraphSetup(t *testing.T) {
 			for name, content := range map[string]string{
 				"deploy/entraid.sh": string(script),
 				"az":                "#!/bin/bash\nexec \"$HELPER_BINARY\" -test.run=TestGraphCLIHelper -- \"$@\"\n",
-				"uuidgen":           "#!/bin/bash\necho " + testRoleID + "\n",
+				"uuidgen":           "#!/bin/bash\necho " + strings.ToUpper(testRoleID) + "\n",
 				"sleep":             "#!/bin/bash\nexit 0\n",
 			} {
 				if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0o700); err != nil {
