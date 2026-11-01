@@ -28,3 +28,10 @@ The project's root folder contains the following important files:
 1. Follow Go best practices and idiomatic patterns
 2. Maintain existing code structure and organization
 3. Write unit tests for new functionality. Use table-driven unit tests when possible.
+4. Use the "got" and "want" pattern for assertions in unit tests to clearly indicate expected and actual values.
+5. Ensure that all new code is properly documented with comments explaining the purpose and functionality of the code.
+6. Follow the existing error handling patterns and conventions used throughout the codebase.
+7. Ensure that all new dependencies are properly managed and included in the `go.mod` file.
+8. Avoid introducing breaking changes to the public API unless absolutely necessary and properly documented.
+9. Ensure that all configuration and deployment scripts are kept up-to-date and consistent with the codebase.
+10. Follow the existing logging and output conventions to maintain consistency in how information and errors are reported.
