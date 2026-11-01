@@ -26,18 +26,30 @@ fi
     # You don't need to modify this id
     # But Azure Event Grid Microsoft Entra Application Id is different for different clouds
     eg_app_id="4962773b-9cdb-44cf-a8bf-237846a00ab7"
-    eg_sp=$(mgc service-principals-with-app-id get --app-id "$eg_app_id" --select "id, appDisplayName")
-    eg_sp_id=$(echo "$eg_sp" | jq -r ".id")
-    eg_display_name=$(echo "$eg_sp" | jq -r ".appDisplayName")
-
-    if [[ $eg_display_name=="Microsoft.EventGrid" ]]; then
+    if eg_sp=$(mgc service-principals-with-app-id get --app-id "$eg_app_id" --select "id, appDisplayName"); then
+        eg_sp_id=$(echo "$eg_sp" | jq -er '.id | strings | select(length > 0)') || {
+            echo "Failed to get the Azure Event Grid service principal ID."
+            exit 1
+        }
+        eg_display_name=$(echo "$eg_sp" | jq -r ".appDisplayName")
+        if [[ "$eg_display_name" != "Microsoft.EventGrid" ]]; then
+            echo "Unexpected Azure Event Grid service principal name: $eg_display_name"
+            exit 1
+        fi
         echo "Azure Event Grid Microsoft Entra Application already exists"
     else
         echo "Creating the Azure Event Grid Microsoft Entra Application"
-        mgc service-principals create --body "{\
+        eg_sp=$(mgc service-principals create --body "{\
             \"appId\": \"$eg_app_id\"\
         }\
-        "
+        ") || {
+            echo "Failed to create the Azure Event Grid service principal."
+            exit 1
+        }
+        eg_sp_id=$(echo "$eg_sp" | jq -er '.id | strings | select(length > 0)') || {
+            echo "Failed to get the Azure Event Grid service principal ID after creation."
+            exit 1
+        }
     fi
 
     # Creates the Azure app role for the webhook Microsoft Entra application
