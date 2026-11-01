@@ -21,7 +21,7 @@ Send events as emails using [Twilio SendGrid's email API](https://www.twilio.com
 Authorization options are mutually exclusive. If both client secrets and Entra ID are configured, Entra ID takes precedence.
 
 ### No Authorization
-No authorization is enforced, meaning anyone who knows your webhook endpoint can trigger it. This is useful for testing in development environments but **not recommended** for production.
+Unauthenticated operation requires explicit development opt-in with `-insecure` or `KU_DEV=true` (or `1`). Without credentials or opt-in, startup fails. Anyone who knows an insecure webhook endpoint can trigger it; do not use this mode in production. The supplied Azure deployment templates do not enable insecure mode.
 
 ### Client Secrets
 Requires two secrets that can be used interchangeably. This enables seamless key rotation by replacing one key at a time without service disruption. The sender must include one key as a query parameter when calling the webhook.
@@ -70,7 +70,7 @@ See the [configuration guide](./configuration.md) for required settings, then co
 ### Deploy kubeup
 Deploy `kubeup` using the included Bicep templates. This creates both the Azure Container App and Event Grid subscription for your AKS cluster events.
 
-#### Deploy with client secrets or no authorization
+#### Deploy with client secrets
 ```bash
 task deploy:azure
 ```

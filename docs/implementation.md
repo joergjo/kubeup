@@ -115,7 +115,7 @@ flowchart TB
 ### Authorization
 `kubeup` supports all webhook authorization options that work with Azure Event Grid:
 
-- **No authorization**: Anyone who knows your webhook endpoint can call it. *Not recommended* except for development testing
+- **No authorization**: Development only, explicitly enabled with `-insecure` or `KU_DEV=true`/`1`. Without credentials or this opt-in, startup fails. Anyone who knows your webhook endpoint can call it.
 - **[Client secret as query parameter](https://learn.microsoft.com/en-us/azure/event-grid/security-authentication#using-client-secret-as-a-query-parameter)**: Requires two secrets (keys) that can be used interchangeably for rolling secret updates. The sender must provide one key via the `access_token` query parameter
 - **[Entra ID authorization](https://learn.microsoft.com/en-us/azure/event-grid/secure-webhook-delivery#deliver-events-to-a-webhook-in-the-same-microsoft-entra-tenant)** (recommended): Verifies the sender has a valid Entra ID access token with the correct `role` claim
 

@@ -36,9 +36,11 @@ func NewServer(handler http.Handler, opts ...Options) (*http.Server, error) {
 		mw := newClientSecretMiddleware(options.clientSecret.secret1, options.clientSecret.secret2)
 		mux.Handle(options.path, mw(handler))
 		slog.Info("using client secret middleware")
-	default:
+	case options.insecure:
 		mux.Handle(options.path, handler)
 		slog.Warn("no authorization middleware configured, webhook is unprotected")
+	default:
+		return nil, fmt.Errorf("authorization required: configure Entra ID, client secrets, or explicitly allow insecure development mode")
 	}
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

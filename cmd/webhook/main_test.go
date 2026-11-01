@@ -20,7 +20,7 @@ func isolateConfiguration(t *testing.T, args ...string) {
 	for _, name := range []string{
 		"KU_PORT", "KU_PATH", "KU_DEBUG", "KU_EMAIL_FROM", "KU_EMAIL_TO", "KU_EMAIL_SUBJECT",
 		"KU_SMTP_HOST", "KU_SMTP_PORT", "KU_SMTP_USERNAME", "KU_SMTP_PASSWORD", "KU_SENDGRID_APIKEY",
-		"KU_TENANT_ID", "KU_APP_ID", "KU_SECRET_1", "KU_SECRET_2",
+		"KU_TENANT_ID", "KU_APP_ID", "KU_SECRET_1", "KU_SECRET_2", "KU_DEV",
 	} {
 		value, present := os.LookupEnv(name)
 		t.Cleanup(func() {
@@ -51,6 +51,12 @@ func TestConfigure(t *testing.T) {
 		want config
 	}{
 		{"defaults", nil, nil, defaults},
+		{"insecure_flag", []string{"-insecure"}, nil, config{Port: 8000, Path: "/webhook", SMTPPort: 587, Insecure: true}},
+		{"insecure_environment_true", nil, map[string]string{"KU_DEV": "true"}, config{Port: 8000, Path: "/webhook", SMTPPort: 587, Insecure: true}},
+		{"insecure_environment_one", nil, map[string]string{"KU_DEV": "1"}, config{Port: 8000, Path: "/webhook", SMTPPort: 587, Insecure: true}},
+		{"insecure_flag_over_environment_false", []string{"-insecure"}, map[string]string{"KU_DEV": "false"}, config{Port: 8000, Path: "/webhook", SMTPPort: 587, Insecure: true}},
+		{"insecure_environment_over_flag_false", []string{"-insecure=false"}, map[string]string{"KU_DEV": "true"}, config{Port: 8000, Path: "/webhook", SMTPPort: 587, Insecure: true}},
+		{"secure_environment_zero", nil, map[string]string{"KU_DEV": "0"}, defaults},
 		{"flags", []string{"-port", "8080", "-path", "/events", "-debug"}, nil,
 			config{Port: 8080, Path: "/events", Debug: true, SMTPPort: 587}},
 		{"explicit_defaults", nil, map[string]string{"KU_PORT": "8000", "KU_PATH": "/webhook", "KU_DEBUG": "false"}, defaults},
@@ -81,7 +87,7 @@ func TestConfigure(t *testing.T) {
 
 func TestConfigureInvalidEnvironment(t *testing.T) {
 	for _, tc := range []struct{ name, field string }{
-		{"KU_PORT", "Port"}, {"KU_SMTP_PORT", "SMTPPort"}, {"KU_DEBUG", "Debug"},
+		{"KU_PORT", "Port"}, {"KU_SMTP_PORT", "SMTPPort"}, {"KU_DEBUG", "Debug"}, {"KU_DEV", "Insecure"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			isolateConfiguration(t)
@@ -180,13 +186,18 @@ func TestServerConfiguration(t *testing.T) {
 		cfg  config
 		want int
 	}{
-		{"unprotected", config{}, 0},
+		{"unprotected", config{Insecure: true}, 1},
 		{"secrets", config{Secret1: "first", Secret2: "second"}, 1},
 		{"entra", config{TenantID: "tenant", AppID: "app"}, 1},
 		{"entra_precedence", config{TenantID: "tenant", AppID: "app", Secret1: "first", Secret2: "second"}, 1},
+		{"secrets_over_insecure", config{Secret1: "first", Secret2: "second", Insecure: true}, 1},
+		{"entra_over_insecure", config{TenantID: "tenant", AppID: "app", Insecure: true}, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			opts := serverOptions(tc.cfg)
+			opts, err := serverOptions(tc.cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if len(opts) != tc.want {
 				t.Fatalf("option count = %d, want %d", len(opts), tc.want)
 			}
@@ -305,7 +316,7 @@ func TestSMTPConfiguration(t *testing.T) {
 func TestRunRejectsIncompleteSMTP(t *testing.T) {
 	original := slog.Default()
 	t.Cleanup(func() { slog.SetDefault(original) })
-	if code := run(config{SMTPHost: "smtp.example.com", SMTPPort: 587}); code != 1 {
+	if code := run(config{Insecure: true, SMTPHost: "smtp.example.com", SMTPPort: 587}); code != 1 {
 		t.Fatalf("exit code = %d, want 1", code)
 	}
 }
