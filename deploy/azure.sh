@@ -46,12 +46,16 @@ if [[ ! -z "$KU_SECRET_1" && ! -z "$KU_SECRET_2" ]]; then
     webhook_url="$webhook_url?access_token=$KU_SECRET_1"
 fi
 
-az deployment group create \
+if az deployment group create \
   --resource-group "$KU_AKS_RESOURCE_GROUP" \
   --name "kubeup-eventgrid-$timestamp" \
   --template-file eventgrid.bicep \
   --parameters aksName="$KU_AKS_CLUSTER" \
     webhookUrl="$webhook_url" appId="$KU_APP_ID" \
-  --output none
-
-echo "Event Grid topic has been created successfully."
+  --output none; then
+    echo "Event Grid topic has been created successfully."
+else
+    status=$?
+    echo "Failed to deploy Event Grid subscription." >&2
+    exit "$status"
+fi
