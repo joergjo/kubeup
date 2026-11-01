@@ -1,6 +1,9 @@
 #!/bin/bash
+set -eE -o pipefail
+trap 'echo "Entra setup failed at line $LINENO. Check deploy/entraid.log and the Azure CLI error above." >&2; exit 1' ERR
 
 config_file=../.env.entraid
+graph_url=https://graph.microsoft.com/v1.0
 
 if [[ -f "$config_file" ]]; then
     echo "The .env.entraid file already exists. Using existing Entra ID application." > ./entraid.log
@@ -8,113 +11,126 @@ if [[ -f "$config_file" ]]; then
     exit 0
 fi
 
-{
-    webhook_app_id=$1
+for tool in az jq uuidgen; do
+    command -v "$tool" >/dev/null || {
+        echo "Required command not found: $tool" >&2
+        exit 1
+    }
+done
 
-    if [[ -z "$webhook_app_id" ]]; then
-        echo "Webhook application ID has not been provided. Creating new webhook application and service principal..."
-        webhook_app=$(mgc applications create --body "{\
-            \"displayName\": \"kubeup-webhook-$(date +%s)\"\
-        }\
-        ")
-        webhook_app_id=$(echo $webhook_app | jq -r ".appId")
-        mgc service-principals create --output NONE --body "{\
-            \"appId\": \"$webhook_app_id\"\
-        }\
-        "
+graph() {
+    az rest --method "$1" --url "$2" --output json "${@:3}"
+}
+
+required_id() {
+    jq -esr 'select(length == 1) | .[0].id | strings |
+        select(test("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))'
+}
+
+find_by_app_id() {
+    local filter response
+    filter=$(jq -nr --arg id "$2" '"appId eq \u0027" + $id + "\u0027" | @uri')
+    response=$(graph GET "$graph_url/$1?\$filter=$filter")
+    echo "$response" | jq -e '.value | arrays | select(length <= 1)' >/dev/null
+    echo "$response" | jq -c '.value[0] // empty'
+}
+
+ensure_principal() {
+    local principal body
+    principal=$(find_by_app_id servicePrincipals "$1")
+    if [[ -z "$principal" ]]; then
+        body=$(jq -n --arg id "$1" '{appId: $id}')
+        principal=$(graph POST "$graph_url/servicePrincipals" --body "$body")
     fi
+    echo "$principal" | required_id
+}
 
-    # Creates Azure Event Grid Microsoft Entra Application if not exists
-    # You don't need to modify this id
-    # But Azure Event Grid Microsoft Entra Application Id is different for different clouds
-    eg_app_id="4962773b-9cdb-44cf-a8bf-237846a00ab7"
-    if eg_sp=$(mgc service-principals-with-app-id get --app-id "$eg_app_id" --select "id, appDisplayName"); then
-        eg_sp_id=$(echo "$eg_sp" | jq -er '.id | strings | select(length > 0)') || {
-            echo "Failed to get the Azure Event Grid service principal ID."
-            exit 1
-        }
-        eg_display_name=$(echo "$eg_sp" | jq -r ".appDisplayName")
-        if [[ "$eg_display_name" != "Microsoft.EventGrid" ]]; then
-            echo "Unexpected Azure Event Grid service principal name: $eg_display_name"
+ensure_assignment() {
+    local principal_id="$1" url response next body
+    url="$graph_url/servicePrincipals/$webhook_sp_id/appRoleAssignedTo"
+    while [[ -n "$url" ]]; do
+        response=$(graph GET "$url")
+        echo "$response" | jq -e '.value | arrays' >/dev/null
+        if echo "$response" | jq -e --arg principal "$principal_id" --arg role "$app_role_id" \
+            --arg resource "$webhook_sp_id" \
+            '.value[] | select(.principalId == $principal and .appRoleId == $role and .resourceId == $resource)' >/dev/null; then
+            return
+        fi
+        next=$(echo "$response" | jq -r '."@odata.nextLink" // empty')
+        if [[ -n "$next" && "$next" != "$graph_url/"* ]]; then
+            echo "Unexpected Graph pagination URL." >&2
             exit 1
         fi
-        echo "Azure Event Grid Microsoft Entra Application already exists"
+        url="$next"
+    done
+    body=$(jq -n --arg principal "$principal_id" --arg resource "$webhook_sp_id" \
+        --arg role "$app_role_id" '{principalId: $principal, resourceId: $resource, appRoleId: $role}')
+    graph POST "$graph_url/servicePrincipals/$webhook_sp_id/appRoleAssignedTo" --body "$body" |
+        jq -er '.id | strings | select(length > 0)' >/dev/null
+}
+
+{
+    account=$(az account show --output json)
+    if [[ $(echo "$account" | jq -r '.user.type') != user ]]; then
+        echo "Interactive Azure CLI login required. Run az login --tenant <tenant-id>." >&2
+        exit 1
+    fi
+    current_user=$(graph GET "$graph_url/me")
+    current_user_id=$(echo "$current_user" | required_id)
+
+    webhook_app_id=${1:-}
+    if [[ -n "$webhook_app_id" ]]; then
+        if ! [[ "$webhook_app_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+            echo "Webhook application ID must be a UUID." >&2
+            exit 1
+        fi
+        webhook_app=$(find_by_app_id applications "$webhook_app_id")
     else
-        echo "Creating the Azure Event Grid Microsoft Entra Application"
-        eg_sp=$(mgc service-principals create --body "{\
-            \"appId\": \"$eg_app_id\"\
-        }\
-        ") || {
-            echo "Failed to create the Azure Event Grid service principal."
-            exit 1
-        }
-        eg_sp_id=$(echo "$eg_sp" | jq -er '.id | strings | select(length > 0)') || {
-            echo "Failed to get the Azure Event Grid service principal ID after creation."
-            exit 1
-        }
+        body=$(jq -n --arg name "kubeup-webhook-$(date +%s)" '{displayName: $name}')
+        webhook_app=$(graph POST "$graph_url/applications" --body "$body")
+        webhook_app_id=$(echo "$webhook_app" | jq '{id: .appId}' | required_id)
     fi
+    webhook_object_id=$(echo "$webhook_app" | required_id)
 
-    # Creates the Azure app role for the webhook Microsoft Entra application
-    eg_role_name="AzureEventGridSecureWebhookSubscriber"
-    if [[ -z $webhook_app ]]; then
-        webhook_app=$(mgc applications-with-app-id get --app-id "$webhook_app_id")
-    fi
+    # The Event Grid application ID is specific to the public Azure cloud.
+    eg_app_id=4962773b-9cdb-44cf-a8bf-237846a00ab7
+    eg_sp_id=$(ensure_principal "$eg_app_id")
+    webhook_sp_id=$(ensure_principal "$webhook_app_id")
 
-    echo "Microsoft Entra App roles before addition of the new role..."
-    app_roles=$(echo $webhook_app | jq -r '.appRoles')
-    echo $app_roles | jq -r ".[].displayName"
-
-    app_role=$(echo $app_roles | jq -r ".[] | select(.displayName == \"$eg_role_name\")")
-
-    if [[ -z $app_role ]]; then
-        echo "Adding the new role to the Microsoft Entra Application"
+    role_name=AzureEventGridSecureWebhookSubscriber
+    app_roles=$(echo "$webhook_app" | jq -ce '.appRoles | arrays')
+    app_role_id=$(echo "$app_roles" | jq -r --arg name "$role_name" '.[] | select(.value == $name) | .id')
+    if [[ -z "$app_role_id" ]]; then
         app_role_id=$(uuidgen)
-        updated_app_roles=$(echo $webhook_app | jq -r ".appRoles + [{\
-            \"allowedMemberTypes\": [\
-                \"User\",\
-                \"Application\"\
-            ],\
-            \"description\": \"Azure Event Grid Role\",\
-            \"displayName\": \"$eg_role_name\",\
-            \"id\": \"$app_role_id\",\
-            \"isEnabled\": true,\
-            \"origin\": \"Application\",\
-            \"value\": \"$eg_role_name\"\
-        }] | {appRoles: .}")
-        mgc applications-with-app-id patch --app-id "$webhook_app_id" --output NONE --body "$updated_app_roles"
-        app_roles=$(echo $updated_app_roles | jq -r '.appRoles')
-    else
-        app_role_id=$(echo $app_role | jq -r ".id")
-        echo "The role already exists in the Microsoft Entra Application"
+        body=$(echo "$app_roles" | jq --arg name "$role_name" --arg id "$app_role_id" \
+            '{appRoles: (. + [{allowedMemberTypes: ["User", "Application"], description: "Azure Event Grid Role",
+                displayName: $name, id: $id, isEnabled: true, value: $name}])}')
+        graph PATCH "$graph_url/applications/$webhook_object_id" --body "$body" >/dev/null
     fi
+    echo "$app_roles" | jq -e --arg name "$role_name" \
+        '[.[] | select(.value == $name)] | length <= 1' >/dev/null
+    app_role_id=$(jq -n --arg id "$app_role_id" '{id: $id}' | required_id)
 
-    echo "Microsoft Entra App roles after addition of the new role..."
-    echo $app_roles | jq -r ".[].displayName"
+    # Wait for the application role to propagate to its service principal.
+    for attempt in 1 2 3 4 5; do
+        principal=$(graph GET "$graph_url/servicePrincipals/$webhook_sp_id")
+        if echo "$principal" | jq -e --arg id "$app_role_id" \
+            '.appRoles[] | select(.id == $id and .isEnabled == true and
+                (.allowedMemberTypes | index("User")) != null and
+                (.allowedMemberTypes | index("Application")) != null)' >/dev/null; then
+            break
+        fi
+        if [[ "$attempt" == 5 ]]; then
+            echo "Required app role is not available on the webhook service principal. Retry setup with application ID $webhook_app_id." >&2
+            exit 1
+        fi
+        sleep 2
+    done
 
-    current_user=$(mgc me get)
-    current_user_object_id=$(echo $current_user | jq -r ".id")
-    current_user_principal_name=$(echo $current_user | jq -r ".userPrincipalName")
-
-    echo "Creating the Microsoft Entra App Role assignment for user: $current_user_principal_name"
-
-    # Creates the user role assignment for the user who will create event subscription
-    webhook_sp_id=$(mgc service-principals-with-app-id get --app-id "$webhook_app_id" --select "id" | jq -r ".id") 
-
-    mgc service-principals app-role-assigned-to create --service-principal-id "$webhook_sp_id" --output NONE --body "{\
-        \"principalId\": \"$current_user_object_id\",\
-        \"resourceId\": \"$webhook_sp_id\",\
-        \"appRoleId\": \"$app_role_id\"\
-    }\
-    "
-    
-    # Creates the service app role assignment for Event Grid Microsoft Entra Application
-    mgc service-principals app-role-assigned-to create --service-principal-id "$webhook_sp_id" --output NONE --body "{\
-        \"principalId\": \"$eg_sp_id\",\
-        \"resourceId\": \"$webhook_sp_id\",\
-        \"appRoleId\": \"$app_role_id\"\
-        }\
-    "
+    ensure_assignment "$current_user_id"
+    ensure_assignment "$eg_sp_id"
+    echo "Entra setup completed successfully."
 } > ./entraid.log
 
-echo "KU_APP_ID='$webhook_app_id'" > "$config_file"
+printf "KU_APP_ID='%s'\n" "$webhook_app_id" > "$config_file"
 cat "$config_file"

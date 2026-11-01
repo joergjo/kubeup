@@ -31,7 +31,7 @@ func TestEntraSetupReusesSavedConfiguration(t *testing.T) {
 	}
 	calls := filepath.Join(root, "graph-calls")
 	mock := "#!/bin/bash\nprintf 'unexpected Graph call\\n' >> \"$CALL_LOG\"\nexit 42\n"
-	if err := os.WriteFile(filepath.Join(root, "mgc"), []byte(mock), 0o700); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "az"), []byte(mock), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	for i := range 2 {
