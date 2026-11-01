@@ -16,6 +16,7 @@ cp .env.template .env
 | `KU_PATH`                | Webhook URL path                       | `webhook`           |
 | `KU_PORT`                | HTTP port                              | `8000`              |
 | `KU_DEBUG`               | Enables debug-level logging            | `false`             |
+| `KU_DEV`                 | Allows unauthenticated development mode | `false`             |
 | `KU_RESOURCE_GROUP`      | Azure resource group for deployment    | none                |
 | `KU_LOCATION`            | Azure region                           | `westeurope`        |
 | `KU_IMAGE`               | Container image and tag                | `joergjo/kubeup:latest` |
@@ -32,6 +33,7 @@ cp .env.template .env
 | `KU_SECRET_1`            | First client secret                    | none                |
 | `KU_SECRET_2`            | Second client secret                   | none                |
 | `KU_APP_ID`              | Entra ID application ID                | none                |
+| `KU_TENANT_ID`           | Entra ID tenant ID                     | none                |
 
 ## Event delivery options
 The following sections describe the environment variables needed for each `kubeup` feature.
@@ -85,7 +87,13 @@ If these variables are not specified, the deployment will create the `kubeup` Az
 You can secure the webhook using Entra ID access tokens, client secrets, or disable authorization entirely. Note that without authorization, anyone who discovers your webhook URL can trigger it.
 
 ### No authorization
-To disable authorization, leave these variables unset:
+Authorization is required by default. For development only, pass `-insecure`
+or set `KU_DEV=true` (or `1`) to explicitly allow unauthenticated access.
+The default is `false`; `KU_DEV=false` or `0` does not enable insecure mode.
+Either opt-in enables insecure mode, even if the other is explicitly false.
+Complete credentials still enable authentication and take precedence over this opt-in.
+
+Leave these variables unset for intentionally unauthenticated development:
 
 | Variable      | Value | Default |
 | ------------- | ----- | ------- |
@@ -116,6 +124,11 @@ For a manual setup, you can store the application ID in your `.env` file:
 | `KU_APP_ID`   | Application ID | none    |
 
 **Note:** Entra ID authorization takes precedence over client secrets. If both are configured, client secrets are ignored. 
+
+Partial Entra ID or client-secret configuration always causes startup to fail,
+including when insecure development mode is enabled or the other method is complete.
+Provide both `KU_TENANT_ID` and `KU_APP_ID` for Entra ID, or both `KU_SECRET_1`
+and `KU_SECRET_2` for client-secret authentication.
 
 ## Command line arguments
 While most configuration uses environment variables, `kubeup` supports a few command line arguments:

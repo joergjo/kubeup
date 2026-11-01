@@ -11,6 +11,15 @@ type options struct {
 	port         int
 	clientSecret *clientSecretOptions
 	entraID      *entraIDOptions
+	insecure     bool
+}
+
+// WithInsecure explicitly allows an unauthenticated development webhook.
+func WithInsecure() Options {
+	return func(options *options) error {
+		options.insecure = true
+		return nil
+	}
 }
 
 type entraIDOptions struct {

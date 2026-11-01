@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ type config struct {
 	Port           int    `env:"KU_PORT" envDefault:"8000"`
 	Path           string `env:"KU_PATH" envDefault:"/webhook"`
 	Debug          bool   `env:"KU_DEBUG" envDefault:"false"`
+	Insecure       bool   `env:"KU_DEV" envDefault:"false"`
 	EmailFrom      string `env:"KU_EMAIL_FROM"`
 	EmailTo        string `env:"KU_EMAIL_TO"`
 	EmailSubject   string `env:"KU_EMAIL_SUBJECT"`
@@ -77,10 +79,12 @@ func configure() config {
 	var port int
 	var path string
 	var debug bool
+	var insecure bool
 
 	flag.IntVar(&port, "port", defaultPort, "HTTP listen port")
 	flag.StringVar(&path, "path", defaultPath, "WebHook path")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
+	flag.BoolVar(&insecure, "insecure", false, "Allow unauthenticated webhook access (development only)")
 	flag.Parse()
 
 	var cfg config
@@ -99,6 +103,7 @@ func configure() config {
 	if !cfg.Debug {
 		cfg.Debug = debug
 	}
+	cfg.Insecure = cfg.Insecure || insecure
 
 	return cfg
 }
@@ -127,6 +132,12 @@ func run(cfg config) int {
 		slog.Warn("debug logging enabled")
 	}
 
+	authOpts, err := serverOptions(cfg)
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
+		return 1
+	}
+
 	p, err := event.NewPublisher(publisherOptions(cfg)...)
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
@@ -139,7 +150,7 @@ func run(cfg config) int {
 		return 1
 	}
 
-	opts := append(serverOptions(cfg), webhook.WithPath(cfg.Path), webhook.WithPort(cfg.Port))
+	opts := append(authOpts, webhook.WithPath(cfg.Path), webhook.WithPort(cfg.Port))
 	s, err := webhook.NewServer(h, opts...)
 	if err != nil {
 		slog.Error("creating server", "error", err)
@@ -196,7 +207,13 @@ func publisherOptions(cfg config) []event.Options {
 	return opts
 }
 
-func serverOptions(cfg config) []webhook.Options {
+func serverOptions(cfg config) ([]webhook.Options, error) {
+	if (cfg.TenantID != "" || cfg.AppID != "") && !cfg.HasEntraID() {
+		return nil, fmt.Errorf("Entra ID requires both KU_TENANT_ID and KU_APP_ID")
+	}
+	if (cfg.Secret1 != "" || cfg.Secret2 != "") && !cfg.HasClientSecrets() {
+		return nil, fmt.Errorf("client secret authorization requires both KU_SECRET_1 and KU_SECRET_2")
+	}
 	var opts []webhook.Options
 	// We prefer Entra ID over client secrets. Using both doesn't make sense, as client secrets
 	// don't add value when using Entra ID.
@@ -205,6 +222,10 @@ func serverOptions(cfg config) []webhook.Options {
 		opts = append(opts, webhook.WithEntraID(cfg.TenantID, cfg.AppID))
 	case cfg.HasClientSecrets():
 		opts = append(opts, webhook.WithClientSecret(cfg.Secret1, cfg.Secret2))
+	case cfg.Insecure:
+		opts = append(opts, webhook.WithInsecure())
+	default:
+		return nil, fmt.Errorf("authorization required: configure Entra ID or client secrets; for development only use -insecure or KU_DEV=true")
 	}
-	return opts
+	return opts, nil
 }
