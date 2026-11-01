@@ -1,0 +1,112 @@
+#!/bin/bash
+set -e -o pipefail
+
+fail() {
+    echo "Mock Azure CLI request failed" >&2
+    exit 42
+}
+
+if [[ "$1" == group ]]; then
+    exit 0
+fi
+if [[ "$1" == deployment ]]; then
+    case "$*" in
+        *"--template-file webhook.bicep"*) echo webhook.example.invalid ;;
+        *"--template-file eventgrid.bicep"*) exit "${MOCK_EVENTGRID_STATUS:-0}" ;;
+        *) fail ;;
+    esac
+    exit 0
+fi
+if [[ "$1" == account ]]; then
+    [[ "$MOCK_MODE" != no-login ]] || fail
+    identity=user
+    [[ "$MOCK_MODE" != non-user ]] || identity=servicePrincipal
+    jq -n --arg identity "$identity" '{user: {type: $identity}}'
+    exit 0
+fi
+[[ "$1" == rest ]] || fail
+shift
+method='' url='' body=''
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --method) method="$2" ;;
+        --url) url="$2" ;;
+        --body) body="$2" ;;
+        --output) [[ "$2" == json ]] || fail ;;
+        *) fail ;;
+    esac
+    shift 2
+done
+[[ "$url" == https://graph.microsoft.com/v1.0/* ]] || fail
+jq -cn --arg method "$method" --arg url "$url" --argjson body "${body:-null}" \
+    '{method: $method, url: $url, body: $body}' >> "$CALL_LOG"
+path=${url#https://graph.microsoft.com/v1.0/}
+role=$(jq -cn --arg id "$ROLE_ID" '{id: $id, value: "AzureEventGridSecureWebhookSubscriber",
+    isEnabled: true, allowedMemberTypes: ["User", "Application"]}')
+roles='[{"id":"22222222-2222-2222-2222-222222222222","value":"unrelated"}]'
+existing=false
+case "$MOCK_MODE" in existing|paginated) existing=true; roles=$(jq -cn --argjson roles "$roles" --argjson role "$role" '$roles + [$role]') ;; esac
+
+case "$method $path" in
+    "GET me") jq -cn --arg id "$USER_ID" '{id: $id}' ;;
+    "POST applications")
+        jq -e '.displayName | startswith("kubeup-webhook-")' <<< "$body" >/dev/null
+        [[ "$MOCK_MODE" != missing-id ]] || OBJECT_ID=""
+        jq -cn --arg id "$OBJECT_ID" --arg app "$APP_ID" --argjson roles "$roles" '{id: $id, appId: $app, appRoles: $roles}'
+        ;;
+    "GET applications?"*)
+        [[ "$path" == "applications?\$filter=appId%20eq%20%27$APP_ID%27" ]] || fail
+        if [[ "$MOCK_MODE" == unknown-app ]]; then
+            echo '{"value":[]}'
+        else
+            jq -cn --arg id "$OBJECT_ID" --arg app "$APP_ID" --argjson roles "$roles" '{value:[{id:$id, appId:$app, appRoles:$roles}]}'
+        fi
+        ;;
+    "PATCH applications/$OBJECT_ID")
+        [[ "$MOCK_MODE" != patch-failure ]] || fail
+        jq -e --arg role "$ROLE_ID" '.appRoles | length == 2 and .[0].value == "unrelated" and .[1].id == $role' <<< "$body" >/dev/null
+        ;;
+    "GET servicePrincipals?"*)
+        [[ "$MOCK_MODE" != forbidden ]] || fail
+        if [[ "$MOCK_MODE" == malformed-lookup ]]; then echo '{"value":null}'; exit 0; fi
+        case "$path" in
+            "servicePrincipals?\$filter=appId%20eq%20%274962773b-9cdb-44cf-a8bf-237846a00ab7%27") id="$EVENTGRID_SP" ;;
+            "servicePrincipals?\$filter=appId%20eq%20%27$APP_ID%27") id="$WEBHOOK_SP" ;;
+            *) fail ;;
+        esac
+        if "$existing"; then jq -cn --arg id "$id" '{value:[{id:$id}]}'; else echo '{"value":[]}'; fi
+        ;;
+    "POST servicePrincipals")
+        [[ "$MOCK_MODE" != create-failure ]] || fail
+        if [[ "$MOCK_MODE" == principal-missing-id ]]; then echo '{}'; exit 0; fi
+        case "$(jq -r '.appId' <<< "$body")" in
+            4962773b-9cdb-44cf-a8bf-237846a00ab7) id="$EVENTGRID_SP" ;;
+            "$APP_ID") id="$WEBHOOK_SP" ;;
+            *) fail ;;
+        esac
+        jq -cn --arg id "$id" '{id:$id}'
+        ;;
+    "GET servicePrincipals/$WEBHOOK_SP")
+        available=true
+        [[ "$MOCK_MODE" != no-role ]] || available=false
+        if [[ "$MOCK_MODE" == propagation ]] && [[ $(jq -s --arg url "$url" '[.[] | select(.url == $url)] | length' "$CALL_LOG") -lt 2 ]]; then
+            available=false
+        fi
+        if "$available"; then jq -cn --argjson role "$role" '{appRoles:[$role]}'; else echo '{"appRoles":[]}'; fi
+        ;;
+    "GET servicePrincipals/$WEBHOOK_SP/appRoleAssignedTo"*)
+        if [[ "$MOCK_MODE" == paginated && "$path" != *"?page=2" ]]; then
+            jq -cn --arg url "$url?page=2" '{value:[], "@odata.nextLink":$url}'
+        elif "$existing"; then
+            jq -cn --arg user "$USER_ID" --arg grid "$EVENTGRID_SP" --arg resource "$WEBHOOK_SP" --arg role "$ROLE_ID" \
+                '{value:[$user,$grid] | map({principalId:.,resourceId:$resource,appRoleId:$role})}'
+        else echo '{"value":[]}'; fi
+        ;;
+    "POST servicePrincipals/$WEBHOOK_SP/appRoleAssignedTo")
+        [[ "$MOCK_MODE" != assignment-failure ]] || fail
+        jq -e --arg resource "$WEBHOOK_SP" --arg role "$ROLE_ID" --arg user "$USER_ID" --arg grid "$EVENTGRID_SP" \
+            '.resourceId == $resource and .appRoleId == $role and (.principalId == $user or .principalId == $grid)' <<< "$body" >/dev/null
+        echo '{"id":"opaque-role-assignment-id"}'
+        ;;
+    *) fail ;;
+esac

@@ -13,6 +13,40 @@ vars:
     sh: date -u +%Y-%m-%dT%H:%M:%SZ
 
 tasks:
+  check:
+    desc: Run application and deployment checks without cloud credentials
+    cmds:
+      - task: go:test
+      - task: deploy:test
+      - task: deploy:contract
+      - task: deploy:lint
+
+  deploy:test:
+    desc: Test deployment scripts with isolated Azure CLI mocks
+    preconditions:
+      - sh: command -v bats && command -v jq
+        msg: Install Bats-core and jq to run deployment tests
+    cmds:
+      - bats deploy/tests
+
+  deploy:contract:
+    desc: Check deployment environment variables against application configuration
+    cmds:
+      - go test -tags deployment_contract ./deploy/tests/contract
+
+  deploy:lint:
+    desc: Run ShellCheck and offline Bicep compilation
+    preconditions:
+      - sh: command -v shellcheck && command -v az && az bicep version
+        msg: Install ShellCheck, Azure CLI and Bicep (az bicep install)
+    cmds:
+      - shellcheck deploy/*.sh deploy/tests/helpers/az deploy/tests/helpers/common.bash
+      - |
+        output=$(mktemp -d)
+        trap 'rm -f "$output/webhook.json" "$output/eventgrid.json"; rmdir "$output"' EXIT
+        az bicep build --file deploy/webhook.bicep --outfile "$output/webhook.json"
+        az bicep build --file deploy/eventgrid.bicep --outfile "$output/eventgrid.json"
+
   default:
     desc: Default task to run the application
     cmds:
@@ -61,4 +95,3 @@ tasks:
     cmds:
       - rm ./.env.entraid ./deploy/entraid.log
     ignore_error: true
-
