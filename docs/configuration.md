@@ -66,6 +66,11 @@ To enable email delivery using SMTP:
 | `KU_EMAIL_TO`      | Recipient email address | none    |
 | `KU_EMAIL_SUBJECT` | Email subject           | none    |
 
+Setting an SMTP host, username, or password enables SMTP configuration validation.
+Incomplete SMTP settings, missing email metadata, or a port outside `1–65535`
+cause startup to fail rather than silently disabling email delivery. The SMTP
+port alone does not enable SMTP, including its default value of `587`.
+
 ## AKS cluster monitoring
 To specify the AKS cluster to monitor:
 
