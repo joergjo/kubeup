@@ -90,7 +90,7 @@ var allEnvVars = [
     value: emailSubject
   }
   {
-    name: 'KU_SENDGRID_API_KEY'
+    name: 'KU_SENDGRID_APIKEY'
     secretRef: 'sendgrid-api-key'
   }
   {
