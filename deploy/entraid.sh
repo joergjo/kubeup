@@ -1,8 +1,10 @@
 #!/bin/bash
 
-if [[ -f ./.env.entraid ]]; then
+config_file=../.env.entraid
+
+if [[ -f "$config_file" ]]; then
     echo "The .env.entraid file already exists. Using existing Entra ID application." > ./entraid.log
-    cat ./.env.entraid
+    cat "$config_file"
     exit 0
 fi
 
@@ -114,5 +116,5 @@ fi
     "
 } > ./entraid.log
 
-echo "KU_APP_ID='$webhook_app_id'" > ../.env.entraid
-cat ../.env.entraid
+echo "KU_APP_ID='$webhook_app_id'" > "$config_file"
+cat "$config_file"
