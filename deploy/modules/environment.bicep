@@ -20,17 +20,12 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2025-02
   }
 }
 
-resource environment 'Microsoft.App/managedEnvironments@2025-10-02-preview' = {
+resource environment 'Microsoft.App/managedEnvironments@2026-07-01' = {
   name: environmentName
   location: location
   properties: {
     appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-        dynamicJsonColumns: true
-      }
+      destination: 'azure-monitor'
     }
     vnetConfiguration: {
       infrastructureSubnetId: infrastructureSubnetId
@@ -39,6 +34,28 @@ resource environment 'Microsoft.App/managedEnvironments@2025-10-02-preview' = {
       {
         name: 'Consumption'
         workloadProfileType: 'Consumption'
+      }
+    ]
+  }
+}
+
+resource diagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${environmentName}-logs'
+  scope: environment
+  properties: {
+    workspaceId: logAnalyticsWorkspace.id
+    logs: [
+      {
+        category: 'ContainerAppSystemLogs'
+        enabled: true
+      }
+      {
+        category: 'ContainerAppConsoleLogs'
+        enabled: true
+      }
+      {
+        category: 'ContainerAppHTTPLogs'
+        enabled: true
       }
     ]
   }

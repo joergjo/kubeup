@@ -7,7 +7,7 @@ Before deploying, choose your configuration options. For a quick start, follow t
 All delivery options can be combined. Event logging is enabled by default.
 
 ### Log to stderr
-`kubeup` writes all events to stderr. With the provided Bicep templates, logs are forwarded to a Log Analytics workspace and stored in the `ContainerAppConsoleLogs_CL` table. On other platforms, use any log shipping solution.
+`kubeup` writes all events to stderr. With the provided Bicep templates, Azure Monitor diagnostic settings forward Container Apps system, console, and HTTP logs to a Log Analytics workspace. These are stored in the `ContainerAppSystemLogs`, `ContainerAppConsoleLogs`, and `ContainerAppHTTPLogs` resource-specific tables. On other platforms, use any log shipping solution.
 
 ### SMTP delivery
 Send events as emails using SMTP. [Mailtrap](https://mailtrap.io) offers a free tier that works well with `kubeup`.
@@ -116,6 +116,15 @@ version=$(az aks get-upgrades -n $KU_AKS_CLUSTER -g $KU_AKS_RESOURCE_GROUP \
 az aks upgrade -n $KU_AKS_CLUSTER -g $KU_AKS_RESOURCE_GROUP -k $version -y
 ```
 
-Once Kubernetes events are published for your AKS cluster, you will receive emails (if configured) and log entries in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
+Once Kubernetes events are published for your AKS cluster, you will receive emails (if configured) and log entries in your Log Analytics workspace's `ContainerAppConsoleLogs` table.
 
 ![Log entries in Azure Log Analytics](../media/logentry.png)
+
+Query the most recent application logs and parse structured JSON written to stdout or stderr:
+
+```kusto
+ContainerAppConsoleLogs
+| top 10 by TimeGenerated desc
+| extend LogData = parse_json(Log)
+| project TimeGenerated, ContainerAppName, RevisionName, LogData
+```
