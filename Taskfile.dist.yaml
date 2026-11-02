@@ -66,6 +66,16 @@ tasks:
     dotenv:  
       - '../.env' 
       - '../.env.entraid'
+    aliases:
+      - deploy:stable
+
+  deploy:aks:
+    desc: Deploy a demo AKS cluster
+    cmds:
+      - ./aks.sh
+    dir: ./deploy
+    dotenv:  
+      - '../.env' 
 
   deploy:all:
     desc: Set up Entra ID and deploy kubeup
