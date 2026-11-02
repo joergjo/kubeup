@@ -135,7 +135,7 @@ var envVars = filter(
     (contains(e, 'secretRef') && contains(secretNames, any(e).secretRef)) || contains(e, 'value') && !empty(any(e).value)
 )
 
-resource containerApp 'Microsoft.App/containerApps@2025-10-02-preview' = {
+resource containerApp 'Microsoft.App/containerApps@2026-07-01' = {
   name: name
   location: location
   properties: {

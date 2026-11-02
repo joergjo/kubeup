@@ -70,16 +70,18 @@ version=$(az aks get-upgrades -n $KU_AKS_CLUSTER -g $KU_AKS_RESOURCE_GROUP \
 az aks upgrade -n $KU_AKS_CLUSTER -g $KU_AKS_RESOURCE_GROUP -k $version -y
 ```
 
-Once Kubernetes events are published, you'll see log entries in your Log Analytics workspace's `ContainerAppConsoleLogs_CL` table.
+Once Kubernetes events are published, you'll see log entries in your Log Analytics workspace's `ContainerAppConsoleLogs` table.
 
 ![Log entries in Azure Log Analytics](../media/logentry.png)
 
-Query the last ten log entries with:
+Query the last ten log entries and parse structured JSON with:
+
+```kusto
+ContainerAppConsoleLogs
+| top 10 by TimeGenerated desc
+| extend LogData = parse_json(Log)
+| project TimeGenerated, ContainerAppName, RevisionName, LogData
 ```
-ContainerAppConsoleLogs_CL 
-  | top 10 by time_d 
-  | project Timestamp=unixtime_seconds_todatetime(time_d), Log_data_s, Log_msg_s 
-````
 
 ### Next steps
 See the [full deployment documentation](./deployment.md) to learn how to protect `kubeup` using Entra ID and enable email notifications.
