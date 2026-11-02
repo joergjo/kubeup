@@ -101,6 +101,11 @@ func TestAzureMonitorLoggingConfiguration(t *testing.T) {
 			text: string(environment),
 			want: "workspaceId: logAnalyticsWorkspace.id",
 		},
+		{
+			name: "diagnostic setting uses the newest supported API version",
+			text: string(environment),
+			want: "Microsoft.Insights/diagnosticSettings@2021-05-01-preview",
+		},
 	} {
 		t.Run(check.name, func(t *testing.T) {
 			if !strings.Contains(check.text, check.want) {
